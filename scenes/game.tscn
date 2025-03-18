@@ -1,10 +1,11 @@
-[gd_scene load_steps=13 format=3 uid="uid://b1kkjep7v1n52"]
+[gd_scene load_steps=14 format=3 uid="uid://b1kkjep7v1n52"]
 
 [ext_resource type="PackedScene" uid="uid://4yp0qu72jr2b" path="res://scenes/player.tscn" id="1_uwrxv"]
 [ext_resource type="Texture2D" uid="uid://bcm1qkp4dydjd" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02.png" id="1_yqjtg"]
 [ext_resource type="Texture2D" uid="uid://c637msvthmlc2" path="res://assets/sprites/other/sheet.png" id="2_lnu2h"]
 [ext_resource type="Texture2D" uid="uid://4upmho5qau0g" path="res://assets/sprites/other/Tileset_Cave.png" id="3_iywne"]
 [ext_resource type="Texture2D" uid="uid://7a3no0tyqneu" path="res://assets/sprites/other/tilesetcave.png" id="4_p57ef"]
+[ext_resource type="AudioStream" uid="uid://bs1k4f7ulp015" path="res://assets/music/steam_gardens_16b.wav" id="6_p57ef"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lnu2h"]
 texture = ExtResource("1_yqjtg")
@@ -323,3 +324,8 @@ position = Vector2(0, -9)
 position = Vector2(0, -4)
 rotation = -1.5708
 shape = SubResource("WorldBoundaryShape2D_lnu2h")
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6_p57ef")
+volume_db = -20.0
+autoplay = true

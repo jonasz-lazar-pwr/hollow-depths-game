@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://bs1k4f7ulp015"
-path="res://.godot/imported/steam_gardens_16b.wav-1284ef6a942ee166b7f2bd2b7d1b560b.sample"
+path="res://.godot/imported/steam_gardens_slowed.wav-a9221f4929c9982dca303dc8df22314e.sample"
 
 [deps]
 
-source_file="res://assets/music/steam_gardens_16b.wav"
-dest_files=["res://.godot/imported/steam_gardens_16b.wav-1284ef6a942ee166b7f2bd2b7d1b560b.sample"]
+source_file="res://assets/music/steam_gardens_slowed.wav"
+dest_files=["res://.godot/imported/steam_gardens_slowed.wav-a9221f4929c9982dca303dc8df22314e.sample"]
 
 [params]
 

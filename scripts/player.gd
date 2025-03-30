@@ -1,7 +1,8 @@
 extends CharacterBody2D
 
-const SPEED = 50.0
-const JUMP_VELOCITY = -75.0
+const SPEED = 50.0;
+const JUMP_VELOCITY = -75.0;
+const CLIMB_SPEED = 30.0;
 var ladder_stack = 0;
 
 func _ready() -> void:
@@ -19,29 +20,34 @@ func _physics_process(delta: float) -> void:
     if velocity.y == 0:
         $AnimatedSprite2D.speed_scale = 1
 
-    var direction := Input.get_axis("left", "right")
-    if direction:
-        $AnimatedSprite2D.animation = "walk"
-        if Input.is_action_pressed("left"):
+    if Input.is_action_pressed("left"):
+        velocity.x = -SPEED
+        if ladder_stack == 0:
+            $AnimatedSprite2D.animation = "walk"
             $AnimatedSprite2D.flip_h = true
-        else:
+    if Input.is_action_pressed("right"):
+        velocity.x = SPEED
+        if ladder_stack == 0:
+            $AnimatedSprite2D.animation = "walk"
             $AnimatedSprite2D.flip_h = false
-        velocity.x = direction * SPEED
-    else:
-        $AnimatedSprite2D.animation = "idle"
+    if !Input.is_action_pressed("left") and !Input.is_action_pressed("right"):
         velocity.x = move_toward(velocity.x, 0, SPEED * 2)
         
     if ladder_stack >= 1:
         velocity.y = 0 
-        $AnimatedSprite2D.animation = "climb"
         if Input.is_action_pressed("up"):
-            $AnimatedSprite2D.speed_scale = 1
-            velocity.y = -50
-        elif Input.is_action_pressed("down"):
+            $AnimatedSprite2D.animation = "climb"
+            velocity.y = -CLIMB_SPEED
             $AnimatedSprite2D.speed_scale = -1
-            velocity.y = 50
-        else:
-            $AnimatedSprite2D.speed_scale = 0 
+        if Input.is_action_pressed("down"):
+            $AnimatedSprite2D.animation = "climb"
+            velocity.y = CLIMB_SPEED
+            $AnimatedSprite2D.speed_scale = 1
+        if !Input.is_action_pressed("up") and !Input.is_action_pressed("down") and !Input.is_action_pressed("left") and !Input.is_action_pressed("right"):
+            $AnimatedSprite2D.speed_scale = 0
+        
+    if velocity.x == 0 and velocity.y == 0 and ladder_stack == 0:
+        $AnimatedSprite2D.animation = "idle"
         
     move_and_slide()
     

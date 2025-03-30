@@ -3,6 +3,7 @@
 ## TODO
 - [ ] fall damage
 - [ ] kopanie
+- [ ] dzwięki
 - [ ] stawianie drabin
 - [ ] sklep
 - [ ] ekwipunek

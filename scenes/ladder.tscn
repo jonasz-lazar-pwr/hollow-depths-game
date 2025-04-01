@@ -10,8 +10,6 @@ atlas = ExtResource("1_xxwne")
 size = Vector2(8, 16)
 
 [node name="Ladder" type="Area2D" groups=["ladders"]]
-z_index = 1
-collision_mask = 2
 script = ExtResource("1_xb1tl")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]

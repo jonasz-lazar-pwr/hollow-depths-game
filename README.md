@@ -1,16 +1,10 @@
 # Hollow Depths
 
 ## 🎮 About the Game  
-*Hollow Depths* is a 2D pixel-art platformer with roguelike and exploration elements.  
-You play as a miner digging deep underground in search of precious materials, planning your return to the surface using limited resources like ladders and ropes.  
-The game combines arcade movement with resource management, focusing on satisfying core mechanics of digging, building, exploring, and upgrading.
-
----
+*Hollow Depths* is a 2D pixel-art platformer with roguelike and exploration elements. You play as a miner digging deep underground in search of precious materials, planning your return to the surface using limited resources like ladders and ropes. The game combines arcade movement with resource management, focusing on satisfying core mechanics of digging, building, exploring, and upgrading.
 
 ## 🎬 Gameplay Trailer
 [![Watch the trailer](https://img.youtube.com/vi/cLYYEjjUvxs/maxresdefault.jpg)](https://youtu.be/cLYYEjjUvxs)
-
----
 
 ## 🧱 Key Features
 - Procedural underground level with diverse biomes.
@@ -21,25 +15,19 @@ The game combines arcade movement with resource management, focusing on satisfyi
 - Retro-style pixel graphics (16x16) and ambient lo-fi soundtrack.
 - Fully playable and tested single-player experience.
 
----
-
 ## 💻 Built With
 - **Engine**: [Godot 4](https://godotengine.org/)  
 - **Language**: GDScript  
 - **Graphics**: Pixel-art assets by [DK Productions](https://dkproductions.itch.io/16bit-miner-animated-character)  
 - **Audio**: Lo-fi ambient soundtrack (royalty-free)
 
----
-
-## 🧑‍🤝‍🧑 Team
+## 👥 Team
 
 | Name             | Role                                                        |
 |------------------|-------------------------------------------------------------|
 | **Konrad Skowron**   | Core gameplay mechanics, digging system, inventory management |
 | **Jonasz Lazar**     | Level logic, ladder & climbing system, gameplay loop integration |
 | **Mateusz Staszków** | Art, animation, UI, NPC/shop system implementation           |
-
----
 
 ## 🚀 Getting Started
 
@@ -50,8 +38,6 @@ To run the project locally:
    ```bash
    git clone https://github.com/jonasz-lazar-pwr/hollow-depths-game.git
    ```
-
----
 
 ## 📝 License
 

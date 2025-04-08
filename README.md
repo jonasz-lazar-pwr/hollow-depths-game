@@ -1,6 +1,10 @@
 # Hollow Depths
-![Godot Engine](https://img.shields.io/badge/engine-godot4-blue?logo=godot-engine)
+![Engine: Godot](https://img.shields.io/badge/engine-godot4-blue?logo=godot-engine)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Status: First Playable](https://img.shields.io/badge/status-first--playable-orange)
+![Platform: PC](https://img.shields.io/badge/platform-PC-lightgrey)
+![Style: Pixel Art](https://img.shields.io/badge/style-pixel--art-critical)
+![Genre: Platformer](https://img.shields.io/badge/genre-platformer-ff69b4)
 
 ## 🎮 About the Game  
 *Hollow Depths* is a 2D pixel-art platformer with roguelike and exploration elements. You play as a miner digging deep underground in search of precious materials, planning your return to the surface using limited resources like ladders and ropes. The game combines arcade movement with resource management, focusing on satisfying core mechanics of digging, building, exploring, and upgrading.

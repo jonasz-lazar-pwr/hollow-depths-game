@@ -3,17 +3,28 @@ extends CharacterBody2D
 const SPEED = 50.0
 const JUMP_VELOCITY = -75.0
 const CLIMB_SPEED = 30.0
-const DIG_REACH = 1
-const LADDER_REACH = 2 # Zasięg stawiania drabin (w kafelkach)
+
+const TILE_HEIGHT: float = 16.0 # Wysokość jednego kafelka w pikselach (dostosuj, jeśli inna)
+const MIN_FALL_TILES_FOR_DAMAGE: int = 3 # Minimalna liczba kafelków spadku, aby otrzymać obrażenia
+const DAMAGE_PER_EXTRA_TILE_PERCENT: float = 10.0 # Procent HP odejmowany za każdy dodatkowy kafelek ponad próg
 
 var ladder_stack = 0
 var inventory = {"ladder": 5} # Przykładowy startowy ekwipunek
+
+var max_hp: float = 100.0  # Maksymalne punkty życia
+var current_hp: float = 100.0 # Aktualne punkty życia
+
+var is_currently_falling: bool = false # Flaga śledząca, czy gracz aktualnie spada
+var fall_start_position_y: float = 0.0 # Pozycja Y, z której gracz zaczął spadać
 
 @export var ladder_scene: PackedScene
 @export var ground_tilemap: TileMapLayer
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
 signal inventory_updated(current_inventory) # Sygnał emitowany przy zmianie ekwipunku
+signal health_updated(new_hp, max_hp_value) # Sygnał do aktualizacji UI
+signal player_died # Sygnał informujący o śmierci gracza
+
 
 func _ready() -> void:
 	if not ground_tilemap:
@@ -29,6 +40,10 @@ func _ready() -> void:
 	
 	# Wyemituj sygnał z początkowym stanem ekwipunku po gotowości gracza
 	inventory_updated.emit(inventory)
+	
+	# Wyemituj sygnał z początkowym stanem HP
+	health_updated.emit(current_hp, max_hp)
+
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("dig"):
@@ -38,295 +53,345 @@ func _input(event: InputEvent) -> void:
 		handle_ladder_placement()
 
 
-# Upewnij się, że masz tę linię zdefiniowaną wyżej w skrypcie:
-#@onready var collision_shape: CollisionShape2D = $CollisionShape2D
-
 func _physics_process(delta: float) -> void:
-	# --- Grawitacja (zgodnie z oryginalnym kodem) ---
-	if not is_on_floor() and ladder_stack == 0:
-		# velocity.y += ProjectSettings.get_setting("physics/2d/default_gravity") * delta / 6 # Alternatywa
-		velocity += get_gravity() * delta / 6 # Oryginał
 
-	# --- Skok (zgodnie z oryginalnym kodem) ---
+	# --- Grawitacja i Śledzenie Spadania ---
+	if not is_on_floor() and ladder_stack == 0:
+		# Jeśli jesteśmy w powietrzu i nie na drabinie, stosuj grawitację
+		velocity += get_gravity() * delta / 6
+
+		# Sprawdź, czy właśnie zaczęliśmy spadać (nie byliśmy już w stanie spadania)
+		if not is_currently_falling:
+			is_currently_falling = true
+			fall_start_position_y = global_position.y # Zapisz pozycję startową upadku
+			# print("Start falling from Y:", fall_start_position_y)
+
+	# --- Wykrywanie Lądowania na Podłodze i Obliczanie Obrażeń ---
+	elif is_on_floor() and is_currently_falling:
+		# Jeśli byliśmy w stanie spadania i właśnie wylądowaliśmy na podłodze
+		is_currently_falling = false # Zakończ stan spadania
+		var fall_end_position_y = global_position.y
+		var fall_distance_pixels = fall_end_position_y - fall_start_position_y
+		# print("Landed at Y:", fall_end_position_y, " Fall distance (pixels):", fall_distance_pixels)
+
+		# Upewnij się, że faktycznie spadliśmy (dystans > 0)
+		if fall_distance_pixels > 0:
+			# Przelicz dystans w pikselach na liczbę kafelków (zaokrąglając w dół)
+			var fall_distance_tiles = floor(fall_distance_pixels / TILE_HEIGHT)
+			# print("Fall distance (tiles):", fall_distance_tiles)
+
+			# Sprawdź, czy przekroczono próg obrażeń
+			if fall_distance_tiles >= MIN_FALL_TILES_FOR_DAMAGE:
+				# Oblicz, o ile kafelków przekroczono próg (minimum 1)
+				var extra_tiles = fall_distance_tiles - (MIN_FALL_TILES_FOR_DAMAGE - 1)
+				# Oblicz procent obrażeń
+				var damage_percent = extra_tiles * DAMAGE_PER_EXTRA_TILE_PERCENT
+				print("Fall damage calculated: ", damage_percent, "% for falling ", fall_distance_tiles, " tiles.")
+				# Zastosuj obrażenia (zakładając, że masz funkcję apply_fall_damage)
+				apply_fall_damage(damage_percent)
+
+	# --- Anulowanie Spadania na Drabinie ---
+	elif ladder_stack > 0:
+		# Jeśli jesteśmy na drabinie, anulujemy stan spadania
+		if is_currently_falling:
+			is_currently_falling = false
+			# print("Grabbed ladder, fall cancelled.")
+
+	# --- Skok ---
+	# Wykonywany tylko, gdy gracz jest na podłodze
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
+		# Ważne: Skok natychmiastowo resetuje flagę spadania
+		is_currently_falling = false
 
-	# --- Ruch Poziomy (Normalny - poza drabiną) ---
-	# Ten blok zostanie obsłużony w sekcji 'else' dla ladder_stack
-	# var direction_x = Input.get_axis("left", "right") # Przenieśliśmy odczyt niżej
-
-	# --- Logika Drabiny i Kolizji ---
+	# --- Logika Ruchu Poziomego i Wspinaczki (bez zmian w stosunku do poprzednich poprawek) ---
 	if ladder_stack >= 1:
-		# Jesteśmy na drabinie
-		set_collision_mask_value(1, false) # Wyłącz kolizję z podłożem (warstwa 1) dla ruchu pionowego
+		# Na drabinie
+		set_collision_mask_value(1, false) # Wyłącz kolizję z podłożem
 		velocity.y = 0 # Resetuj prędkość Y na początku
 
 		var direction_y = Input.get_axis("up", "down")
-		var direction_x = Input.get_axis("left", "right") # Odczyt kierunku X tutaj
+		var direction_x = Input.get_axis("left", "right")
 
 		var can_move_vertically = true
 		var can_move_horizontally = true
 
-		# --- SPRAWDZENIE KOLIZJI PIONOWEJ ---
+		# Sprawdzanie kolizji pionowej (bez zmian)
 		if direction_y != 0:
 			var check_pos_world_v: Vector2
 			var collider_center_y = collision_shape.global_position.y
 			var half_collider_height = collision_shape.shape.height / 2
 			var check_margin_v = 1.0
-			if direction_y > 0:
-				var bottom_edge_y = collider_center_y + half_collider_height
-				check_pos_world_v = Vector2(global_position.x, bottom_edge_y + check_margin_v)
-			else:
-				var top_edge_y = collider_center_y - half_collider_height
-				check_pos_world_v = Vector2(global_position.x, top_edge_y - check_margin_v)
+			if direction_y > 0: check_pos_world_v = Vector2(global_position.x, collider_center_y + half_collider_height + check_margin_v)
+			else: check_pos_world_v = Vector2(global_position.x, collider_center_y - half_collider_height - check_margin_v)
 			var target_map_coords_v = ground_tilemap.local_to_map(check_pos_world_v)
 			if ground_tilemap.get_cell_source_id(target_map_coords_v) != -1:
 				var tile_data_v = ground_tilemap.get_cell_tile_data(target_map_coords_v)
 				if tile_data_v and tile_data_v.get_collision_polygons_count(0) > 0:
 					can_move_vertically = false
 
-		# --- NOWE: SPRAWDZENIE KOLIZJI POZIOMEJ ---
+		# Sprawdzanie kolizji poziomej (bez zmian)
 		if direction_x != 0:
 			var check_pos_world_h: Vector2
-			# Używamy środka collidera jako odniesienia pionowego
 			var collider_center_y = collision_shape.global_position.y
-			# Używamy globalnej pozycji X gracza (lub środka collidera X)
 			var collider_center_x = collision_shape.global_position.x
-			# Pobieramy promień kapsuły jako "połowę szerokości"
 			var collider_radius = collision_shape.shape.radius
 			var check_margin_h = 1.0
-
-			# Oblicz offset X w kierunku ruchu
 			var check_offset_x = sign(direction_x) * (collider_radius + check_margin_h)
-			# Pozycja do sprawdzenia: na tej samej wysokości co środek collidera, przesunięta w poziomie
 			check_pos_world_h = Vector2(collider_center_x + check_offset_x, collider_center_y)
-
 			var target_map_coords_h = ground_tilemap.local_to_map(check_pos_world_h)
-
-			# Sprawdź, czy w docelowej komórce jest solidny kafelek
 			if ground_tilemap.get_cell_source_id(target_map_coords_h) != -1:
 				var tile_data_h = ground_tilemap.get_cell_tile_data(target_map_coords_h)
 				if tile_data_h and tile_data_h.get_collision_polygons_count(0) > 0:
-					can_move_horizontally = false # Zablokuj ruch poziomy, jeśli jest kolizja
-		# --- KONIEC SPRAWDZENIA POZIOMEGO ---
+					can_move_horizontally = false
 
-		# Ustaw prędkości tylko jeśli ruch jest dozwolony
+		# Ustaw prędkości ruchu na drabinie (bez zmian)
 		if can_move_vertically and direction_y != 0:
 			velocity.y = direction_y * CLIMB_SPEED
-		# Jeśli !can_move_vertically, velocity.y pozostaje 0
-
-		# Zastosuj prędkość poziomą tylko jeśli można się ruszyć i jest input
 		if can_move_horizontally and direction_x != 0:
 			velocity.x = direction_x * SPEED
-		else:
-			# Jeśli nie można się ruszyć w poziomie LUB nie ma inputu X, wyhamuj
+		elif not can_move_horizontally: # Jeśli zablokowany w poziomie, zatrzymaj ruch X
+			velocity.x = move_toward(velocity.x, 0, SPEED)
+		else: # Jeśli brak inputu X i można się ruszać, wyhamuj
 			velocity.x = move_toward(velocity.x, 0, SPEED)
 
-		# --- Logika animacji wspinaczki ---
-		if direction_y != 0 or (can_move_horizontally and direction_x != 0): # Animuj jeśli ruch pionowy LUB dozwolony poziomy
+		# Animacje wspinaczki (bez zmian)
+		if direction_y != 0 or (can_move_horizontally and direction_x != 0):
 			$AnimatedSprite2D.animation = "climb"
-			if not $AnimatedSprite2D.is_playing(): # Poprawka z poprzedniej wersji - graj tylko jeśli nie gra
-				$AnimatedSprite2D.play()
+			if not $AnimatedSprite2D.is_playing(): $AnimatedSprite2D.play()
 			$AnimatedSprite2D.speed_scale = 1
-		else: # Brak efektywnego ruchu na drabinie
+		else:
 			$AnimatedSprite2D.animation = "climb"
-			if $AnimatedSprite2D.is_playing(): # Poprawka z poprzedniej wersji - zatrzymaj jeśli gra
-				$AnimatedSprite2D.stop()
+			if $AnimatedSprite2D.is_playing(): $AnimatedSprite2D.stop()
 			$AnimatedSprite2D.frame = 0
-
-		# --- Odwracanie sprite'a ---
-		if direction_x != 0:
-			$AnimatedSprite2D.flip_h = direction_x < 0
+		if direction_x != 0: $AnimatedSprite2D.flip_h = direction_x < 0
 
 	else:
-		# --- Poza drabiną (logika jak w oryginale) ---
+		# Poza drabiną (na ziemi lub w powietrzu)
 		set_collision_mask_value(1, true) # Włącz kolizję z podłożem
 
-		# Odczyt kierunku X dla ruchu po ziemi
+		# Ruch poziomy na ziemi/w powietrzu
 		var direction_x = Input.get_axis("left", "right")
-
-		# Logika prędkości poziomej na ziemi
 		if direction_x:
 			velocity.x = direction_x * SPEED
 		else:
 			velocity.x = move_toward(velocity.x, 0, SPEED)
 
-		# Logika animacji chodzenia/stania/spadania
+		# Animacje chodzenia/stania/spadania
 		if is_on_floor():
+			# Na ziemi
 			if direction_x != 0:
+				# Chodzenie
 				$AnimatedSprite2D.animation = "walk"
 				$AnimatedSprite2D.flip_h = direction_x < 0
-				if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "walk": # Play only if needed
+				if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "walk":
 					$AnimatedSprite2D.play("walk")
 			else:
+				# Stanie w miejscu
 				$AnimatedSprite2D.animation = "idle"
-				if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "idle": # Play only if needed
+				if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "idle":
 					$AnimatedSprite2D.play("idle")
 		else:
-			# W powietrzu
-			$AnimatedSprite2D.animation = "idle" # Zmień na "fall"
-			if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "idle": # Play only if needed
-					$AnimatedSprite2D.play("idle") # Zmień na "fall"
+			# W powietrzu (spadanie lub skok)
+			# TODO: Rozważ dodanie osobnej animacji "fall"
+			$AnimatedSprite2D.animation = "idle" # Tymczasowo używamy idle
+			if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "idle":
+				$AnimatedSprite2D.play("idle") # Odtwórz animację "fall", jeśli istnieje
 
-	# --- Wykonaj ruch (zawsze na końcu) ---
+	# --- Wykonaj Ruch ---
+	# Funkcja move_and_slide() zastosuje obliczoną prędkość i obsłuży kolizje
 	move_and_slide()
 
-#func handle_digging():
-	#if not ground_tilemap: return
-	#var mouse_pos = get_global_mouse_position()
-	#var target_map_coords = ground_tilemap.local_to_map(mouse_pos)
-	#var player_map_coords = ground_tilemap.local_to_map(global_position)
-#
-	#var dx = abs(target_map_coords.x - player_map_coords.x)
-	#var dy = abs(target_map_coords.y - player_map_coords.y)
-#
-	#if dx <= DIG_REACH and dy <= DIG_REACH:
-		#var tile_data = ground_tilemap.get_cell_tile_data(target_map_coords)
-		#if tile_data:
-			#var is_diggable = tile_data.get_custom_data("diggable")
-			#if is_diggable:
-				#print("Digging tile at map coordinates: ", target_map_coords)
-				#var _specific_dig_time = tile_data.get_custom_data("dig_time") # Ta zmienna nie jest używana?
-				## Jeśli chcesz opóźnienie, musisz zaimplementować timer lub yield
-				## $AnimatedSprite2D.flip_h = mouse_pos.x < player_map_coords.x # Powinno być global_position.x?
-				#$AnimatedSprite2D.flip_h = mouse_pos.x < global_position.x
-				#$AnimatedSprite2D.play("dig") # Użyj play() zamiast przypisania animation
-				#ground_tilemap.set_cell(target_map_coords, -1) # Warstwa 0 domyślnie
-			#else:
-				#print("Tile at ", target_map_coords, " is not diggable.")
-		#else:
-			#print("No tile data to dig at map coordinates: ", target_map_coords)
-	#else:
-		#print("Target tile at ", target_map_coords, " is too far from player at ", player_map_coords)
+	# --- Sprawdzenie po ruchu (Edge Case) ---
+	# Czasami move_and_slide() może spowodować, że gracz opuści podłogę
+	# (np. ześlizgnięcie się z krawędzi). Musimy to wykryć, aby poprawnie
+	# rozpocząć śledzenie upadku w takiej sytuacji.
+	if not is_on_floor() and not is_currently_falling and ladder_stack == 0:
+		# Jeśli po ruchu nie jesteśmy na ziemi, nie byliśmy oznaczani jako spadający
+		# i nie jesteśmy na drabinie, to właśnie zaczęliśmy spadać.
+		is_currently_falling = true
+		fall_start_position_y = global_position.y
+		# print("Start falling (post-move_and_slide) from Y:", fall_start_position_y)
 
-# ZASTĄP STARĄ FUNKCJĘ handle_digging() TĄ WERSJĄ:
+
 func handle_digging():
-	# Sprawdź, czy referencja do TileMap istnieje (potrzebna do konwersji i kopania)
+	# Sprawdź, czy referencja do TileMap istnieje
 	if not ground_tilemap: return
 
-	# Pobierz pozycję myszy i gracza na mapie
+	# Pobierz pozycje na mapie
 	var mouse_pos = get_global_mouse_position()
 	var target_map_coords = ground_tilemap.local_to_map(mouse_pos)
 	var player_map_coords = ground_tilemap.local_to_map(global_position)
 
-	# Oblicz odległość w kafelkach od gracza do celu kliknięcia
-	var dx_reach = abs(target_map_coords.x - player_map_coords.x)
-	var dy_reach = abs(target_map_coords.y - player_map_coords.y)
-
-	# Sprawdź, czy cel jest w zasięgu (DIG_REACH działa też dla zbierania drabin)
-	if dx_reach <= DIG_REACH and dy_reach <= DIG_REACH:
-
-		# --- NOWA CZĘŚĆ: SPRAWDZENIE CZY KLIKNIĘTO NA DRABINĘ ---
-		var collected_ladder = false # Flaga, czy zebrano drabinę
-		# Przejrzyj wszystkie węzły w grupie "ladders"
-		for ladder in get_tree().get_nodes_in_group("ladders"):
-			# Sprawdź, czy to faktycznie instancja drabiny (na wszelki wypadek)
-			if ladder is Area2D:
-				# Pobierz pozycję drabiny na mapie kafelków
-				var ladder_map_coords = ground_tilemap.local_to_map(ladder.global_position)
-				# Sprawdź, czy kliknięta komórka mapy odpowiada pozycji drabiny
-				if ladder_map_coords == target_map_coords:
-					# Znaleziono drabinę w klikniętym miejscu i w zasięgu!
-					print("Collecting ladder at map coordinates: ", target_map_coords)
-
-					# Dodaj drabinę do ekwipunku
-					inventory["ladder"] += 1
-					# Wyemituj sygnał aktualizacji UI
-					inventory_updated.emit(inventory)
-					# Usuń drabinę ze sceny (ważne: użyj queue_free() dla bezpieczeństwa)
-					ladder.queue_free()
-					# TODO: Odtwórz dźwięk zbierania drabiny
-					# TODO: Można dodać krótką animację zbierania
-
-					# Ustaw flagę i przerwij pętlę, bo znaleźliśmy i zebraliśmy drabinę
-					collected_ladder = true
-					break # Wyjdź z pętli 'for ladder'
-
-		# --- KONIEC SPRAWDZANIA DRABIN ---
-
-		# Jeśli zebrano drabinę, nie próbuj kopać ziemi w tym samym miejscu
-		if collected_ladder:
-			return # Zakończ funkcję handle_digging
-
-		# --- ISTNIEJĄCA CZĘŚĆ: KOPANIE ZIEMI (jeśli nie zebrano drabiny) ---
-		# Pobierz dane kafelka w docelowej pozycji
-		var tile_data = ground_tilemap.get_cell_tile_data(target_map_coords)
-		# Sprawdź, czy kafelek istnieje
-		if tile_data:
-			# Sprawdź niestandardową właściwość "diggable"
-			var is_diggable = tile_data.get_custom_data("diggable")
-			if is_diggable:
-				print("Digging tile at map coordinates: ", target_map_coords)
-				var _specific_dig_time = tile_data.get_custom_data("dig_time") # Nadal nieużywane
-
-				# Ustaw kierunek animacji kopania i odtwórz ją
-				$AnimatedSprite2D.flip_h = mouse_pos.x < global_position.x
-				$AnimatedSprite2D.play("dig")
-
-				# Usuń kafelek z mapy
-				ground_tilemap.set_cell(target_map_coords, -1)
-			else:
-				# Kafelek istnieje, ale nie jest kopialny
-				print("Tile at ", target_map_coords, " is not diggable.")
-		else:
-			# W tej komórce nie ma żadnego kafelka (ani drabiny, bo sprawdziliśmy wcześniej)
-			print("Nothing to dig or collect at map coordinates: ", target_map_coords)
-	else:
-		# Cel jest poza zasięgiem
-		print("Target tile at ", target_map_coords, " is too far from player at ", player_map_coords)
-
-
-# ZASTĄP STARĄ WERSJĘ TĄ PONIŻEJ
-func handle_ladder_placement() -> void:
-	# NAJPIERW sprawdź, czy gracz ma jeszcze drabiny
-	if inventory.get("ladder", 0) <= 0:
-		print("No ladders left in inventory.")
-		return # Zakończ funkcję, jeśli nie ma drabin
-
-	# Potem sprawdź, czy potrzebne referencje istnieją
-	if not ground_tilemap or not ladder_scene:
-		printerr("Ground TileMapLayer or Ladder Scene not assigned!")
-		return
-
-	# Reszta logiki znajdowania pozycji (bez zmian)
-	var mouse_pos = get_global_mouse_position()
-	var target_map_coords = ground_tilemap.local_to_map(mouse_pos)
-	var player_map_coords = ground_tilemap.local_to_map(global_position)
+	# Oblicz różnicę współrzędnych
 	var dx = target_map_coords.x - player_map_coords.x
 	var dy = target_map_coords.y - player_map_coords.y
-	var is_adjacent = (
-		(dx == 0 and abs(dy) == 1) or # Zmieniono na abs(dy) dla sprawdzania góra/dół
-		(abs(dx) == 1 and dy == 0)   # Na lewo lub na prawo
-	)
 
-	if is_adjacent:
-		# Sprawdź, czy komórka jest pusta
-		if ground_tilemap.get_cell_source_id(target_map_coords) == -1: # Sprecyzowano warstwę 0
+	# --- NOWY WARUNEK ZASIĘGU: Pole gracza LUB 4 sąsiednie ---
+	var is_valid_target = (
+		(dx == 0 and dy == 0) or           # Pole, na którym stoi gracz
+		(abs(dx) == 1 and dy == 0) or      # Bezpośrednio lewo/prawo
+		(dx == 0 and abs(dy) == 1)         # Bezpośrednio góra/dół
+	)
+	# --- KONIEC NOWEGO WARUNKU ---
+
+	# Sprawdź, czy cel jest w poprawnym zasięgu
+	if is_valid_target:
+
+		# --- Sprawdź, czy kliknięto na istniejącą drabinę do zebrania ---
+		# To może się zdarzyć również na polu, na którym stoi gracz
+		var collected_ladder = false
+		for ladder in get_tree().get_nodes_in_group("ladders"):
+			if ladder is Area2D and is_instance_valid(ladder):
+				var ladder_map_coords = ground_tilemap.local_to_map(ladder.global_position)
+				if ladder_map_coords == target_map_coords:
+					print("Collecting ladder at map coordinates: ", target_map_coords)
+					inventory["ladder"] += 1
+					inventory_updated.emit(inventory)
+					ladder.queue_free()
+					collected_ladder = true
+					# TODO: Odtwórz dźwięk zbierania drabiny
+					break
+
+		if collected_ladder:
+			return # Zakończ, jeśli zebrano drabinę
+
+		# --- Jeśli nie zebrano drabiny, spróbuj kopać ziemię ---
+		# Kopanie NIE może odbywać się na polu gracza (dx=0, dy=0),
+		# bo gracz na nim stoi, a nie na bloku ziemi.
+		if not (dx == 0 and dy == 0): # Dodatkowe zabezpieczenie - nie próbuj kopać pod sobą
+			var tile_data = ground_tilemap.get_cell_tile_data(target_map_coords)
+			if tile_data:
+				var is_diggable = tile_data.get_custom_data("diggable")
+				if is_diggable:
+					print("Digging tile at map coordinates: ", target_map_coords)
+					$AnimatedSprite2D.flip_h = mouse_pos.x < global_position.x
+					$AnimatedSprite2D.play("dig")
+					# TODO: Odtwórz dźwięk kopania
+					ground_tilemap.set_cell(target_map_coords, -1)
+				else:
+					print("Tile at ", target_map_coords, " is not diggable.")
+			else:
+				# W tej komórce (sąsiedniej) nie ma ani drabiny, ani kafelka
+				print("Nothing to dig or collect at adjacent map coordinates: ", target_map_coords)
+
+	else:
+		# Cel jest poza dozwolonym zasięgiem (dalej niż 1 pole lub na skos)
+		print("Target tile at ", target_map_coords, " is out of interaction range from player at ", player_map_coords)
+
+
+func handle_ladder_placement() -> void:
+	# Sprawdź ekwipunek
+	if inventory.get("ladder", 0) <= 0:
+		print("No ladders left in inventory.")
+		return
+
+	# Sprawdź referencje
+	if not ground_tilemap or not ladder_scene:
+		printerr("Ground TileMapLayer or Ladder Scene not assigned in Player script!")
+		return
+
+	# Pobierz pozycje
+	var mouse_pos = get_global_mouse_position()
+	var target_map_coords = ground_tilemap.local_to_map(mouse_pos)
+	var player_map_coords = ground_tilemap.local_to_map(global_position)
+
+	# Oblicz różnicę
+	var dx = target_map_coords.x - player_map_coords.x
+	var dy = target_map_coords.y - player_map_coords.y
+
+	# --- NOWY WARUNEK ZASIĘGU: Pole gracza LUB 4 sąsiednie ---
+	var is_valid_target_range = (
+		(dx == 0 and dy == 0) or           # Pole, na którym stoi gracz
+		(abs(dx) == 1 and dy == 0) or      # Bezpośrednio lewo/prawo
+		(dx == 0 and abs(dy) == 1)         # Bezpośrednio góra/dół
+	)
+	# --- KONIEC NOWEGO WARUNKU ---
+
+	# Jeśli cel jest w zasięgu
+	if is_valid_target_range:
+
+		# --- NOWE: Sprawdź, czy na docelowym polu już istnieje drabina ---
+		var ladder_already_exists = false
+		for existing_ladder in get_tree().get_nodes_in_group("ladders"):
+			if is_instance_valid(existing_ladder):
+				var existing_ladder_map_coords = ground_tilemap.local_to_map(existing_ladder.global_position)
+				if existing_ladder_map_coords == target_map_coords:
+					ladder_already_exists = true
+					break # Znaleziono istniejącą drabinę, przerwij sprawdzanie
+		# --- KONIEC SPRAWDZANIA ISTNIEJĄCYCH DRABIN ---
+
+		# Sprawdź, czy komórka na mapie ziemi jest pusta ORAZ czy nie ma tam już drabiny
+		if ground_tilemap.get_cell_source_id(target_map_coords) == -1 and not ladder_already_exists:
+			# Można postawić drabinę
 			var ladder_world_pos = ground_tilemap.map_to_local(target_map_coords)
 			var ladder_instance = ladder_scene.instantiate()
 			ladder_instance.position = ladder_world_pos
 
-			# Podłączanie sygnałów nowej drabiny (bez zmian)
+			# Podłącz sygnały
 			if not ladder_instance.entered_ladder.is_connected(_on_ladder_entered):
 				ladder_instance.entered_ladder.connect(_on_ladder_entered)
 			if not ladder_instance.exited_ladder.is_connected(_on_ladder_exited):
 				ladder_instance.exited_ladder.connect(_on_ladder_exited)
 
-			# Dodaj instancję do sceny (bez zmian)
-			get_parent().add_child(ladder_instance)
+			# Dodaj do sceny
+			var parent_node = get_parent()
+			if is_instance_valid(parent_node):
+				parent_node.add_child(ladder_instance)
+				print("Added ladder instance:", ladder_instance.name, "to parent:", parent_node.name)
+			else:
+				printerr("Player has no valid parent to add ladder to!")
+				return
 
-			# --- ZMIANA i SYGNAŁ ---
-			# Zmniejsz liczbę drabin w ekwipunku
+			# Zaktualizuj ekwipunek
 			inventory["ladder"] -= 1
-			# Wyemituj sygnał, że ekwipunek się zmienił, przekazując aktualny słownik
 			inventory_updated.emit(inventory)
 			print("Placed ladder at map coords:", target_map_coords, " Remaining:", inventory["ladder"])
-			# --- KONIEC ZMIANY i SYGNAŁU ---
+			# TODO: Odtwórz dźwięk stawiania drabiny
 
 		else:
-			print("Cannot place ladder here, cell is not empty at map coords:", target_map_coords)
+			# Komórka nie jest pusta lub już jest tam drabina
+			if ladder_already_exists:
+				print("Cannot place ladder here, another ladder already exists at map coords:", target_map_coords)
+			else: # Wiadomo, że jest tam blok ziemi
+				print("Cannot place ladder here, cell is not empty (ground tile) at map coords:", target_map_coords)
 	else:
-		print("Target position for ladder is not adjacent or valid.")
+		# Cel jest poza dozwolonym zasięgiem
+		print("Target position for ladder is out of interaction range.")
+
+
+# Funkcja do odejmowania HP i obsługi konsekwencji
+func apply_fall_damage(damage_percent: float):
+	if current_hp <= 0: return # Już nie żyje
+
+	var damage_amount = (damage_percent / 100.0) * max_hp
+	current_hp -= damage_amount
+	current_hp = max(current_hp, 0) # HP nie może spaść poniżej 0
+
+	print("Took ", damage_amount, " fall damage. HP left: ", current_hp)
+	health_updated.emit(current_hp, max_hp) # Wyślij sygnał do UI
+
+	# TODO: Dodaj efekt wizualny/dźwiękowy otrzymania obrażeń (np. krótkie mignięcie, dźwięk)
+	# $AnimatedSprite2D.modulate = Color(1, 0.5, 0.5) # Przykład mignięcia na czerwono
+	# await get_tree().create_timer(0.1).timeout
+	# $AnimatedSprite2D.modulate = Color(1, 1, 1)
+
+	if current_hp <= 0:
+		handle_death()
+
+
+# Funkcja obsługująca śmierć gracza
+func handle_death():
+	print("Player has died!")
+	player_died.emit() # Wyślij sygnał
+	# TODO: Odtwórz animację śmierci
+	$AnimatedSprite2D.play("death")
+	# TODO: Zablokuj sterowanie graczem
+	set_physics_process(false) # Prosty sposób na zatrzymanie przetwarzania fizyki
+	set_process_input(false)   # Zablokuj input
+	# TODO: Pokaż ekran "Game Over" lub zaoferuj respawn po chwili
+	# await get_tree().create_timer(2.0).timeout
+	# get_tree().reload_current_scene() # Przykładowy respawn przez przeładowanie sceny
 
 
 func _on_ladder_entered(body):
@@ -343,103 +408,3 @@ func _on_ladder_exited(body):
 		# print("Exited ladder, stack:", ladder_stack)
 		# Ważne: Po zejściu z drabiny, przywróć normalną grawitację i kolizje natychmiast
 		set_collision_mask_value(1, true)
-
-
-#func _physics_process(delta: float) -> void:
-	## --- Grawitacja (zgodnie z oryginalnym kodem) ---
-	#if not is_on_floor() and ladder_stack == 0:
-		## velocity.y += ProjectSettings.get_setting("physics/2d/default_gravity") * delta / 6 # Alternatywa
-		#velocity += get_gravity() * delta / 6 # Oryginał
-#
-	## --- Skok (zgodnie z oryginalnym kodem) ---
-	#if Input.is_action_just_pressed("jump") and is_on_floor():
-		#velocity.y = JUMP_VELOCITY
-#
-	## --- Ruch Poziomy (zgodnie z oryginalnym kodem) ---
-	#var direction_x = Input.get_axis("left", "right")
-	#if direction_x:
-		#velocity.x = direction_x * SPEED
-	#else:
-		#velocity.x = move_toward(velocity.x, 0, SPEED)
-#
-	## --- Logika Drabiny i Kolizji ---
-	#if ladder_stack >= 1:
-		## Jesteśmy na drabinie
-		#set_collision_mask_value(1, false) # Wyłącz kolizję z podłożem (warstwa 1)
-		#velocity.y = 0 # Resetuj prędkość Y na początku
-		#var direction_y = Input.get_axis("up", "down")
-#
-		#var can_move_vertically = true # Domyślnie zakładamy, że można się ruszyć
-#
-		## --- DOKŁADNIEJSZE SPRAWDZENIE KOLIZJI PRZY WSPINACZCE (v3) ---
-		#if direction_y != 0:
-			#var check_pos_world: Vector2
-			## Pobierz światową pozycję środka kształtu kolizji
-			#var collider_center_y = collision_shape.global_position.y
-			## Pobierz połowę wysokości kształtu kolizji
-			#var half_collider_height = collision_shape.shape.height / 2
-			## Mały offset (np. 1 piksel)
-			#var check_margin = 1.0
-#
-			#if direction_y > 0: # Schodzenie w dół
-				## Sprawdź tuż PONIŻEJ dolnej krawędzi collidera
-				#var bottom_edge_y = collider_center_y + half_collider_height
-				#check_pos_world = Vector2(global_position.x, bottom_edge_y + check_margin)
-			#else: # Wchodzenie w górę (direction_y < 0)
-				## Sprawdź tuż POWYŻEJ górnej krawędzi collidera
-				#var top_edge_y = collider_center_y - half_collider_height
-				#check_pos_world = Vector2(global_position.x, top_edge_y - check_margin)
-#
-			#var target_map_coords = ground_tilemap.local_to_map(check_pos_world)
-#
-			## Sprawdź, czy w docelowej komórce jest solidny kafelek (Source ID != -1)
-			#if ground_tilemap.get_cell_source_id(target_map_coords) != -1:
-				## (Opcjonalne, ale bezpieczniejsze) Sprawdź, czy kafelek ma kolizję
-				#var tile_data = ground_tilemap.get_cell_tile_data(target_map_coords)
-				#if tile_data and tile_data.get_collision_polygons_count(0) > 0:
-					#can_move_vertically = false # Zablokuj ruch, jeśli jest kafelek Z KOLIZJĄ
-				## Jeśli nie potrzebujesz sprawdzać kolizji, wystarczy:
-				## elif tile_data: # Jeśli jakikolwiek kafelek tam jest (bez sprawdzania kolizji)
-				##    can_move_vertically = false
-		## --- KONIEC DOKŁADNIEJSZEGO SPRAWDZENIA ---
-#
-#
-		## Ustaw prędkość pionową tylko jeśli ruch jest dozwolony
-		#if can_move_vertically and direction_y != 0:
-			#velocity.y = direction_y * CLIMB_SPEED
-		## Jeśli !can_move_vertically, velocity.y pozostaje 0
-#
-		## --- Logika animacji wspinaczki (zgodnie z oryginalnym kodem) ---
-		#if direction_y != 0 or direction_x != 0: # Ruch w pionie LUB poziomie na drabinie
-			#$AnimatedSprite2D.animation = "climb"
-			#$AnimatedSprite2D.play()
-			#$AnimatedSprite2D.speed_scale = 1
-		#else: # Brak ruchu na drabinie
-			#$AnimatedSprite2D.animation = "climb"
-			#$AnimatedSprite2D.pause()
-			#$AnimatedSprite2D.frame = 0
-#
-		## --- Odwracanie sprite'a (zgodnie z oryginalnym kodem) ---
-		#if direction_x != 0:
-			#$AnimatedSprite2D.flip_h = direction_x < 0
-#
-	#else:
-		## --- Poza drabiną (zgodnie z oryginalnym kodem) ---
-		#set_collision_mask_value(1, true) # Włącz kolizję z podłożem
-#
-		## Logika animacji chodzenia/stania/spadania
-		#if is_on_floor():
-			#if direction_x != 0:
-				#$AnimatedSprite2D.animation = "walk"
-				#$AnimatedSprite2D.flip_h = direction_x < 0
-				#$AnimatedSprite2D.play()
-			#else:
-				#$AnimatedSprite2D.animation = "idle"
-				#$AnimatedSprite2D.play()
-		#else:
-			## W powietrzu
-			#$AnimatedSprite2D.animation = "idle" # Możesz chcieć zmienić na "fall"
-			#$AnimatedSprite2D.play()
-#
-	## --- Wykonaj ruch (zawsze na końcu) ---
-	#move_and_slide()

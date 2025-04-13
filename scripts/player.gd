@@ -17,13 +17,12 @@ var current_hp: float = 100.0 # Aktualne punkty życia
 var is_currently_falling: bool = false # Flaga śledząca, czy gracz aktualnie spada
 var fall_start_position_y: float = 0.0 # Pozycja Y, z której gracz zaczął spadać
 
-# Zmienne do obsługi ciągłego kopania
+
 var dig_timer: float = 0.0
-var current_dig_tile: Vector2i = Vector2i(-1, -1) # domyślna wartość (-1, -1) jako "pusty"
+const DIG_DURATION: float = 3.0 # Zdefiniuj stałą dla czasu kopania
+var current_dig_tile: Vector2i = Vector2i(-1, -1)
 
-
-
-
+@onready var dig_progress_sprite: Sprite2D = $DigProgressSprite # Upewnij się, że ścieżka jest poprawna!
 @export var ladder_scene: PackedScene
 @export var ground_tilemap: TileMapLayer
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -33,7 +32,7 @@ var current_dig_tile: Vector2i = Vector2i(-1, -1) # domyślna wartość (-1, -1)
 # Dźwięki stawiania/usuwania drabin:
 @onready var LadderPlaceSound: AudioStreamPlayer2D = $LadderPlaceSound
 @onready var LadderRemoveSound: AudioStreamPlayer2D = $LadderRemoveSound
-
+var dig_progress_material: ShaderMaterial = null
 signal inventory_updated(current_inventory) # Sygnał emitowany przy zmianie ekwipunku
 signal health_updated(new_hp, max_hp_value) # Sygnał do aktualizacji UI
 signal player_died # Sygnał informujący o śmierci gracza
@@ -269,16 +268,22 @@ func process_digging(delta: float) -> void:
 				return
 	
 			var dissolve_effect = preload("res://assets/sprites/other/scenes/DissolveEffect.tscn").instantiate()
-			dissolve_effect.block_texture = my_block_texture
-			dissolve_effect.position = ground_tilemap.map_to_world(current_dig_tile)
-			get_tree().current_scene.add_child(dissolve_effect)
-				
-			ground_tilemap.set_cell(current_dig_tile, -1)
+# ---> ZMIANA TUTAJ <---
+			# Przypisz AtlasTexture do zmiennej 'initial_texture' w instancji efektu
+			dissolve_effect.initial_texture = my_block_texture
+
+			dissolve_effect.position = ground_tilemap.map_to_local(current_dig_tile) # Poprawka na map_to_local
+			# Lub jeśli efekt ma być w globalnej przestrzeni:
+			# dissolve_effect.global_position = ground_tilemap.map_to_world(current_dig_tile)
+
+			get_tree().current_scene.add_child(dissolve_effect) # Lub get_parent(), zależy gdzie chcesz go dodać
+
+			ground_tilemap.set_cell(current_dig_tile, -1) # Użyj warstwy -1 jeśli masz tylko jedną
 			print("Tile destroyed at: ", current_dig_tile)
-				
+
 			reset_digging()
-			$AnimatedSprite2D.animation = "idle"
-			$AnimatedSprite2D.play("idle")
+			#$AnimatedSprite2D.animation = "idle" # Prawdopodobnie reset_digging to robi
+			#$AnimatedSprite2D.play("idle")
 
 
 

@@ -1,0 +1,9 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://cqxf4pmpk57bp"]
+
+[ext_resource type="Shader" uid="uid://44l8motmiola" path="res://shaders/TileDissolve.gdshader" id="1_pn34a"]
+[ext_resource type="Texture2D" uid="uid://c0up3eg2fpqjb" path="res://assets/sprites/crack1.png" id="2_3wkx2"]
+
+[resource]
+shader = ExtResource("1_pn34a")
+shader_parameter/noise_tex = ExtResource("2_3wkx2")
+shader_parameter/progress = 0.115

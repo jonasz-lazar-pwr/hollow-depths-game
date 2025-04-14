@@ -1,4 +1,4 @@
-[gd_scene load_steps=40 format=3 uid="uid://4yp0qu72jr2b"]
+[gd_scene load_steps=42 format=3 uid="uid://4yp0qu72jr2b"]
 
 [ext_resource type="Script" uid="uid://cq0ybetkfcej5" path="res://scripts/player.gd" id="1_g2els"]
 [ext_resource type="Texture2D" uid="uid://owxmkmo3hff" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner_AllAnimations_SpriteSheet.png" id="2_g2els"]
@@ -7,7 +7,6 @@
 [ext_resource type="AudioStream" uid="uid://b6hbsvqkflhua" path="res://assets/sounds/walk3.ogg" id="5_qlg0r"]
 [ext_resource type="AudioStream" uid="uid://bbhbi0jxvy13x" path="res://assets/sounds/ladder-create.ogg" id="6_fjrip"]
 [ext_resource type="AudioStream" uid="uid://y63k8i7xjsa6" path="res://assets/sounds/ladder-destroy.ogg" id="7_smehm"]
-[ext_resource type="Material" uid="uid://cqxf4pmpk57bp" path="res://shaders/DissolveMaterial.tres" id="8_16a80"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_y4r1p"]
 atlas = ExtResource("2_g2els")
@@ -140,7 +139,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_jej6c")
 }],
-"loop": true,
+"loop": false,
 "name": &"climb",
 "speed": 5.0
 }, {
@@ -185,7 +184,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"dig",
-"speed": 5.0
+"speed": 10.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -249,6 +248,37 @@ animations = [{
 radius = 3.0
 height = 12.0
 
+[sub_resource type="Shader" id="Shader_hs3jg"]
+code = "shader_type canvas_item;
+
+render_mode blend_mix, unshaded;
+
+uniform float progress: hint_range(0,1) = 0.0;
+uniform float speed: hint_range(0,10) = 2.0;
+uniform vec4 main_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform sampler2D noise_tex;
+
+void fragment() {
+	vec2 uv = UV;
+	float noise_val = texture(noise_tex, uv).r;
+    // Używamy smoothstep z marginesem, aby uzyskać płynne przejście.
+    float dissolve_factor = smoothstep(progress - 0.1, progress + 0.1, noise_val);
+    // Interpolujemy między pełnym kolorem a przezroczystością:
+	COLOR = mix(main_color, vec4(0.0), dissolve_factor);
+}
+
+"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_psqw3"]
+load_path = "res://.godot/imported/crack1.png-386db6912d1cb3bda5f918e88c14b82c.ctex"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_a0lea"]
+shader = SubResource("Shader_hs3jg")
+shader_parameter/progress = 0.0
+shader_parameter/speed = 2.0
+shader_parameter/main_color = Vector4(1, 1, 1, 1)
+shader_parameter/noise_tex = SubResource("CompressedTexture2D_psqw3")
+
 [node name="Player" type="CharacterBody2D"]
 z_index = 1
 collision_layer = 2
@@ -257,7 +287,7 @@ script = ExtResource("1_g2els")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -8)
 sprite_frames = SubResource("SpriteFrames_ur7pv")
-animation = &"death"
+animation = &"dig"
 autoplay = "idle"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
@@ -283,4 +313,4 @@ stream = ExtResource("7_smehm")
 
 [node name="DigProgressSprite" type="Sprite2D" parent="."]
 visible = false
-material = ExtResource("8_16a80")
+material = SubResource("ShaderMaterial_a0lea")

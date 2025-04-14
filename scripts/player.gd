@@ -17,9 +17,8 @@ var current_hp: float = 100.0 # Aktualne punkty życia
 var is_currently_falling: bool = false # Flaga śledząca, czy gracz aktualnie spada
 var fall_start_position_y: float = 0.0 # Pozycja Y, z której gracz zaczął spadać
 
-
 var dig_timer: float = 0.0
-const DIG_DURATION: float = 3.0 # Zdefiniuj stałą dla czasu kopania
+const DIG_DURATION: float = 1.8 # Zdefiniuj stałą dla czasu kopania
 var current_dig_tile: Vector2i = Vector2i(-1, -1)
 
 @onready var dig_progress_sprite: Sprite2D = $DigProgressSprite # Upewnij się, że ścieżka jest poprawna!
@@ -32,7 +31,7 @@ var current_dig_tile: Vector2i = Vector2i(-1, -1)
 # Dźwięki stawiania/usuwania drabin:
 @onready var LadderPlaceSound: AudioStreamPlayer2D = $LadderPlaceSound
 @onready var LadderRemoveSound: AudioStreamPlayer2D = $LadderRemoveSound
-var dig_progress_material: ShaderMaterial = null
+
 signal inventory_updated(current_inventory) # Sygnał emitowany przy zmianie ekwipunku
 signal health_updated(new_hp, max_hp_value) # Sygnał do aktualizacji UI
 signal player_died # Sygnał informujący o śmierci gracza
@@ -60,13 +59,11 @@ func _ready() -> void:
 	inventory_updated.emit(inventory)
 	health_updated.emit(current_hp, max_hp)
 
-
 func _input(event: InputEvent) -> void:
 	# UWAGA: Nie wywołujemy tutaj bezpośrednio kopi (handle_digging),
 	#       bo chcemy, aby postęp kopania był ciągły.
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		handle_ladder_placement()
-
 
 func _physics_process(delta: float) -> void:
 	# --- Grawitacja i śledzenie spadania ---
@@ -87,8 +84,6 @@ func _physics_process(delta: float) -> void:
 				print("Fall damage calculated: ", damage_percent, "% for falling ", fall_distance_tiles, " tiles.")
 				apply_fall_damage(damage_percent)
 				
-				
-				
 	# --- Obsługa kopania bloków (ciągłe) ---
 	if Input.is_action_pressed("dig"):
 		process_digging(delta)
@@ -102,7 +97,6 @@ func _physics_process(delta: float) -> void:
 			is_currently_falling = false
 		if WalkSound.playing:
 			WalkSound.stop()
-
 	
 	# --- Skok ---
 	if Input.is_action_just_pressed("jump") and is_on_floor():
@@ -142,7 +136,7 @@ func _physics_process(delta: float) -> void:
 				if tile_data_v and tile_data_v.get_collision_polygons_count(0) > 0:
 					can_move_vertically = false
 		if direction_x != 0:
-			var collider_center_y = collision_shape.global_position.y  # już mamy tę wartość
+			var collider_center_y = collision_shape.global_position.y
 			var collider_center_x = collision_shape.global_position.x
 			var collider_radius = collision_shape.shape.radius
 			var check_margin_h = 1.0
@@ -190,7 +184,10 @@ func _physics_process(delta: float) -> void:
 				WalkSound.stop()
 		
 		if is_on_floor():
-			if direction_x2 != 0:
+			if current_dig_tile != Vector2i(-1, -1):
+				# Jeśli trwa kopanie, nie zmieniaj animacji
+				pass
+			elif direction_x2 != 0:
 				$AnimatedSprite2D.animation = "walk"
 				$AnimatedSprite2D.flip_h = direction_x2 < 0
 				if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "walk":
@@ -200,17 +197,16 @@ func _physics_process(delta: float) -> void:
 				if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "idle":
 					$AnimatedSprite2D.play("idle")
 		else:
-			$AnimatedSprite2D.animation = "idle"
-			if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "idle":
-				$AnimatedSprite2D.play("idle")
+			if current_dig_tile == Vector2i(-1, -1):  # Tylko jeśli nie kopiemy
+				$AnimatedSprite2D.animation = "idle"
+				if not $AnimatedSprite2D.is_playing() or $AnimatedSprite2D.animation != "idle":
+					$AnimatedSprite2D.play("idle")
 	
 	move_and_slide()
 	
 	if not is_on_floor() and not is_currently_falling and ladder_stack == 0:
 		is_currently_falling = true
 		fall_start_position_y = global_position.y
-
-
 
 func process_digging(delta: float) -> void:
 	var mouse_pos = get_global_mouse_position()
@@ -219,7 +215,7 @@ func process_digging(delta: float) -> void:
 	
 	var dx = target_map_coords.x - player_map_coords.x
 	var dy = target_map_coords.y - player_map_coords.y
-	var is_valid_target = ( (dx == 0 and dy == 0) or (abs(dx) == 1 and dy == 0) or (dx == 0 and abs(dy) == 1) )
+	var is_valid_target = ((dx == 0 and dy == 0) or (abs(dx) == 1 and dy == 0) or (dx == 0 and abs(dy) == 1))
 	
 	if not is_valid_target:
 		reset_digging()
@@ -236,57 +232,27 @@ func process_digging(delta: float) -> void:
 				LadderRemoveSound.play()
 				reset_digging()
 				return
-				
+	
+	# Sprawdź czy zmieniamy cel kopania
 	if current_dig_tile == Vector2i(-1, -1) or current_dig_tile != target_map_coords:
 		current_dig_tile = target_map_coords
 		dig_timer = 0.0
+		update_tile_dig_animation(current_dig_tile, 0.0)
+	
+	# Zawsze odtwarzaj animację kopania podczas procesu kopania
+	if $AnimatedSprite2D.animation != "dig" or !$AnimatedSprite2D.is_playing():
 		$AnimatedSprite2D.animation = "dig"
 		$AnimatedSprite2D.play("dig")
-		update_tile_dig_animation(current_dig_tile, 0.0)
-	else:
-		dig_timer += delta
-		update_tile_dig_animation(current_dig_tile, dig_timer / 3.0)
-		if dig_timer >= 3.0:
-			var tile_set: TileSet = ground_tilemap.tile_set
-			var source_id = ground_tilemap.get_cell_source_id(current_dig_tile)
-			var atlas_coords = ground_tilemap.get_cell_atlas_coords(current_dig_tile)
-
-			var my_block_texture: Texture2D = null
-
-			if source_id != -1:
-				var source = tile_set.get_source(source_id)
-				if source is TileSetAtlasSource:
-					var texture = source.texture
-					var region = source.get_tile_texture_region(atlas_coords)
-			
-					my_block_texture = AtlasTexture.new()
-					my_block_texture.atlas = texture
-					my_block_texture.region = region
-			else:
-				print("Brak tekstury dla tego kafelka.")
-				reset_digging()
-				return
 	
-			var dissolve_effect = preload("res://assets/sprites/other/scenes/DissolveEffect.tscn").instantiate()
-# ---> ZMIANA TUTAJ <---
-			# Przypisz AtlasTexture do zmiennej 'initial_texture' w instancji efektu
-			dissolve_effect.initial_texture = my_block_texture
-
-			dissolve_effect.position = ground_tilemap.map_to_local(current_dig_tile) # Poprawka na map_to_local
-			# Lub jeśli efekt ma być w globalnej przestrzeni:
-			# dissolve_effect.global_position = ground_tilemap.map_to_world(current_dig_tile)
-
-			get_tree().current_scene.add_child(dissolve_effect) # Lub get_parent(), zależy gdzie chcesz go dodać
-
-			ground_tilemap.set_cell(current_dig_tile, -1) # Użyj warstwy -1 jeśli masz tylko jedną
-			print("Tile destroyed at: ", current_dig_tile)
-
-			reset_digging()
-			#$AnimatedSprite2D.animation = "idle" # Prawdopodobnie reset_digging to robi
-			#$AnimatedSprite2D.play("idle")
-
-
-
+	# Aktualizuj timer kopania
+	dig_timer += delta
+	update_tile_dig_animation(current_dig_tile, dig_timer / DIG_DURATION)
+	
+	if dig_timer >= DIG_DURATION:
+		# Usuwamy blok bez wywoływania efektu shader/dissolve
+		ground_tilemap.set_cell(current_dig_tile, -1)
+		print("Tile destroyed at: ", current_dig_tile)
+		reset_digging()
 
 # Funkcja aktualizująca wizualny efekt niszczenia bloku (możesz rozbudować)
 func update_tile_dig_animation(tile_coords: Vector2, progress: float) -> void:
@@ -294,7 +260,6 @@ func update_tile_dig_animation(tile_coords: Vector2, progress: float) -> void:
 	# Na tę chwilę jest placeholder.
 	# Przykład: print("Dig progress for tile ", tile_coords, ": ", progress);
 	pass
-
 
 func handle_ladder_placement() -> void:
 	if inventory.get("ladder", 0) <= 0:
@@ -310,7 +275,7 @@ func handle_ladder_placement() -> void:
 	
 	var dx = target_map_coords.x - player_map_coords.x
 	var dy = target_map_coords.y - player_map_coords.y
-	var is_valid_target_range = ( (dx == 0 and dy == 0) or (abs(dx) == 1 and dy == 0) or (dx == 0 and abs(dy) == 1) )
+	var is_valid_target_range = ((dx == 0 and dy == 0) or (abs(dx) == 1 and dy == 0) or (dx == 0 and abs(dy) == 1))
 	
 	if is_valid_target_range:
 		var ladder_already_exists = false
@@ -350,7 +315,6 @@ func handle_ladder_placement() -> void:
 	else:
 		print("Target position for ladder is out of interaction range.")
 
-
 func apply_fall_damage(damage_percent: float) -> void:
 	if current_hp <= 0:
 		return
@@ -362,7 +326,6 @@ func apply_fall_damage(damage_percent: float) -> void:
 	if current_hp <= 0:
 		handle_death()
 
-
 func handle_death() -> void:
 	print("Player has died!")
 	player_died.emit()
@@ -371,13 +334,11 @@ func handle_death() -> void:
 	set_process_input(false)
 	# Możesz dodać ekran Game Over lub respawn
 
-
 func _on_ladder_entered(body):
 	if body == self:
 		ladder_stack += 1
 		if WalkSound.playing:
 			WalkSound.stop()
-
 
 func _on_ladder_exited(body):
 	if body == self:

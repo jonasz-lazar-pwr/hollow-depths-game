@@ -35,6 +35,7 @@ var digging_animation = "dig"
 @onready var JumpSound: AudioStreamPlayer2D = $JumpSound
 @onready var LadderPlaceSound: AudioStreamPlayer2D = $LadderPlaceSound
 @onready var LadderRemoveSound: AudioStreamPlayer2D = $LadderRemoveSound
+@onready var DigSound: AudioStreamPlayer2D = $DigSound
 
 signal inventory_updated(current_inventory)  # Sygnał aktualizacji ekwipunku
 signal health_updated(new_hp, max_hp_value)     # Sygnał aktualizacji HP
@@ -297,15 +298,20 @@ func dig_block_progress(map_coords: Vector2i) -> void:
 	if not digging_blocks.has(map_coords):
 		stop_digging()
 		return
-	
+
+	# Odtwórz dźwięk kopania – sprawdzamy, czy nie jest już odtwarzany, by nie nakładać wielu dźwięków
+	if not DigSound.playing:
+		DigSound.play()
+
 	digging_blocks[map_coords] -= digging_damage
 	print("Digging block at ", map_coords, " - Durability: ", digging_blocks[map_coords])
 	
 	if digging_blocks[map_coords] <= 0:
 		ground_tilemap.set_cell(map_coords, -1)
 		digging_blocks.erase(map_coords)
-		# Możesz dodać tutaj odtworzenie dźwięku zniszczenia bloku
+		# Możesz też dodać inny dźwięk dla zniszczenia bloku, jeśli chcesz
 		stop_digging()
+
 
 func handle_ladder_placement() -> void:
 	if inventory.get("ladder", 0) <= 0:

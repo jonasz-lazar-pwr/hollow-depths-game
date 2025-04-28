@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3 uid="uid://c5jhyxyopykhd"]
+
+[ext_resource type="Script" uid="uid://xiu1moqcmuwf" path="res://scripts/ladder.gd" id="1_xb1tl"]
+[ext_resource type="Texture2D" uid="uid://bcm1qkp4dydjd" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02.png" id="1_xxwne"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xxwne"]
+atlas = ExtResource("1_xxwne")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xb1tl"]
+size = Vector2(8, 16)
+
+[node name="Ladder" type="Area2D" groups=["ladders"]]
+script = ExtResource("1_xb1tl")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("AtlasTexture_xxwne")
+region_enabled = true
+region_rect = Rect2(112, 80, 16, 16)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-1, 0)
+shape = SubResource("RectangleShape2D_xb1tl")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
+[connection signal="body_exited" from="." to="." method="_on_body_exited"]

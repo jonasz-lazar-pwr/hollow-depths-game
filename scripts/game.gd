@@ -4,6 +4,8 @@ extends Node2D
 
 @onready var player = $WorldContainer/Player # Ścieżka do gracza
 @onready var game_over_layer = $GameOverLayer
+@onready var pause_menu = $PauseMenuLayer/PauseMenu # Upewnij się, że ścieżka jest poprawna!
+# lub: @onready var pause_menu_layer = $PauseMenuLayer
 #@onready var world_container = $WorldContainer
 
 
@@ -19,6 +21,11 @@ func _ready():
 
 	if is_instance_valid(game_over_layer):
 		game_over_layer.visible = false # Ukryj na starcie
+	
+	if pause_menu:
+		pause_menu.hide()
+	else:
+		printerr("Game script cannot find PauseMenu node!")
 
 
 func _on_player_died():
@@ -36,3 +43,32 @@ func _on_player_died():
 
 	# 3. TODO: Odtwórz dźwięk "Game Over"
 	# 4. TODO: Przyciski Restart/Quit
+
+# Ta funkcja przechwytuje input, który nie został obsłużony gdzie indziej
+func _unhandled_input(_event):
+	# Sprawdź, czy naciśnięto akcję "ui_cancel" (domyślnie ESC)
+	if Input.is_action_just_pressed("ui_cancel"):
+		if get_tree().paused:
+			# Jeśli gra jest już spauzowana, odpauzuj (menu samo się ukryje przez swój skrypt)
+			# Sprawdzamy czy menu jest widoczne, żeby przypadkiem nie odpauzować gdy jest niewidoczne
+			if pause_menu and pause_menu.visible:
+				# Wołamy funkcję z menu pauzy, żeby zachować spójność
+				pause_menu.resume_game()
+		else:
+			# Jeśli gra nie jest spauzowana, spauzuj i pokaż menu
+			get_tree().paused = true
+			if pause_menu:
+				pause_menu.show()
+			else:
+				printerr("Cannot show PauseMenu, node not found!")
+		# Oznacz input jako obsłużony, aby inne węzły (np. gracz) go nie przetworzyły
+		get_viewport().set_input_as_handled()
+#
+#func _on_player_died():
+	#print("Game Over sequence started.")
+	## Upewnij się, że menu pauzy jest ukryte, gdy pojawi się Game Over
+	#if pause_menu and pause_menu.visible:
+		#pause_menu.hide()
+	## ... (reszta logiki game over) ...
+	#get_tree().paused = true
+	## ... (reszta logiki game over) ...

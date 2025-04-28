@@ -1,0 +1,48 @@
+[gd_scene load_steps=7 format=3 uid="uid://dx0nelbl5t6pt"]
+
+[ext_resource type="Script" uid="uid://crbxmja2hsbda" path="res://addons/Inventory/UI/List/InventoryListItemUI.gd" id="1_p4nf2"]
+[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="2_pj05p"]
+[ext_resource type="Script" uid="uid://c31st5sfn50qu" path="res://addons/Inventory/InventoryItem.gd" id="3_ciutl"]
+[ext_resource type="Script" uid="uid://bvegqwtipxnbg" path="res://addons/Inventory/UI/PingPongScroller.gd" id="4_g7qem"]
+
+[sub_resource type="Resource" id="Resource_xf6fd"]
+script = ExtResource("2_pj05p")
+name = "Unknown Item with very long random ass text"
+description = ""
+weight = 1
+stackable = true
+max_stack_size = 99
+
+[sub_resource type="Resource" id="Resource_73rdj"]
+script = ExtResource("3_ciutl")
+item_type = SubResource("Resource_xf6fd")
+custom_name = ""
+
+[node name="InventoryListItemUI" type="PanelContainer"]
+offset_right = 160.0
+offset_bottom = 25.0
+script = ExtResource("1_p4nf2")
+item = SubResource("Resource_73rdj")
+
+[node name="BoxContainer" type="BoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Name" type="Container" parent="BoxContainer"]
+clip_contents = true
+custom_minimum_size = Vector2(87.23, 0)
+layout_mode = 2
+script = ExtResource("4_g7qem")
+
+[node name="Label" type="Label" parent="BoxContainer/Name"]
+layout_mode = 2
+text = "Steel Sword of Power"
+vertical_alignment = 1
+
+[node name="Stack" type="Label" parent="BoxContainer"]
+layout_mode = 2
+text = "(1)"
+
+[node name="Weight" type="Label" parent="BoxContainer"]
+layout_mode = 2
+text = "1kg"

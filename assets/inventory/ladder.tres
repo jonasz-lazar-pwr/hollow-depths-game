@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="InventoryItemType" load_steps=4 format=3 uid="uid://pmkg1u7amds4"]
+
+[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="1_bqfb1"]
+[ext_resource type="Texture2D" uid="uid://bcm1qkp4dydjd" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02.png" id="2_ubyk3"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x35jx"]
+atlas = ExtResource("2_ubyk3")
+region = Rect2(112, 80, 16, 16)
+
+[resource]
+script = ExtResource("1_bqfb1")
+name = "Drabina"
+description = "Drewniana drabina"
+texture = SubResource("AtlasTexture_x35jx")
+weight = 1
+stackable = true
+max_stack_size = 99
+metadata/_custom_type_script = "uid://c2kq0x5odumur"

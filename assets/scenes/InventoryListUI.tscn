@@ -1,0 +1,50 @@
+[gd_scene load_steps=11 format=3 uid="uid://bd4oyxo6udxfd"]
+
+[ext_resource type="Script" uid="uid://b40dmy1axmbj1" path="res://addons/Inventory/UI/List/InventoryListUI.gd" id="1_j88ox"]
+[ext_resource type="PackedScene" uid="uid://dx0nelbl5t6pt" path="res://assets/scenes/InventoryListItemUI.tscn" id="2_cj375"]
+[ext_resource type="Script" uid="uid://drdwdl32kthr4" path="res://addons/Inventory/Inventory.gd" id="3_b7gc8"]
+[ext_resource type="Script" uid="uid://c31st5sfn50qu" path="res://addons/Inventory/InventoryItem.gd" id="3_ivh56"]
+[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="4_t8n1e"]
+
+[sub_resource type="Resource" id="Resource_hfwgv"]
+script = ExtResource("4_t8n1e")
+name = "Unknown Item with very long text"
+description = ""
+weight = 1
+stackable = true
+max_stack_size = 99
+
+[sub_resource type="Resource" id="Resource_ib6o5"]
+script = ExtResource("3_ivh56")
+item_type = SubResource("Resource_hfwgv")
+custom_name = ""
+
+[sub_resource type="Resource" id="Resource_0lq4p"]
+script = ExtResource("4_t8n1e")
+name = "Iron Sword"
+description = ""
+weight = 1
+stackable = true
+max_stack_size = 99
+
+[sub_resource type="Resource" id="Resource_33y3e"]
+script = ExtResource("3_ivh56")
+item_type = SubResource("Resource_0lq4p")
+custom_name = ""
+
+[sub_resource type="Resource" id="Resource_fp4j3"]
+script = ExtResource("3_b7gc8")
+capacity = null
+
+[node name="InventoryListUI" type="ScrollContainer"]
+custom_minimum_size = Vector2(50, 50)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+script = ExtResource("1_j88ox")
+InventoryListItemUI = ExtResource("2_cj375")
+initial_items = Array[ExtResource("3_ivh56")]([SubResource("Resource_ib6o5"), SubResource("Resource_33y3e"), SubResource("Resource_33y3e")])
+inventory = SubResource("Resource_fp4j3")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2

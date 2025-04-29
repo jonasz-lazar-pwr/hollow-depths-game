@@ -54,10 +54,19 @@ func _on_inventory_item_removed(item:InventoryItem, slot:int):
 
 
 func _create_inventory_list_item_ui(item:InventoryItem, slot:int):
+	if not ItemScene:
+		printerr("SimpleInventoryUI: ItemScene is not assigned!")
+		return
+	if not is_instance_valid(container_target):
+		printerr("SimpleInventoryUI: Cannot add item UI, container_target is invalid!")
+		return
+
+	print("SimpleInventoryUI: Creating UI for item: ", item.name if item else "NULL ITEM", " in slot: ", slot) # Dodaj sprawdzenie `if item`
 	var itemUI:Control = ItemScene.instantiate()
 	itemUI.set_meta("inventory_slot", slot)
 	itemUI.item = item
 	container_target.add_child(itemUI)
+	print("SimpleInventoryUI: Item UI added as child.")
 
 
 func get_item_ui(item:InventoryItem) -> Control:
@@ -76,11 +85,22 @@ func get_first_item_ui_by_type(type:InventoryItemType) -> InventoryGridItemUI:
 
 
 func _ready():
+	print("SimpleInventoryUI: _ready start")
 	if container_target_node:
 		container_target = get_node(container_target_node)
-	
+		print("SimpleInventoryUI: Container target node found: ", container_target)
+	else:
+		printerr("SimpleInventoryUI: container_target_node not set!")
+		return # Ważne, żeby nie kontynuować bez celu
+
 	if container_target:
 		_clear_ui()
 		_create_ui()
 		if initial_items:
-			inventory.put_many(initial_items)
+			if inventory: # Dodaj sprawdzenie, czy inventory istnieje
+				inventory.put_many(initial_items)
+			else:
+				printerr("SimpleInventoryUI: Cannot put initial_items, inventory is null!")
+	else:
+		printerr("SimpleInventoryUI: container_target is null!")
+	print("SimpleInventoryUI: _ready end")

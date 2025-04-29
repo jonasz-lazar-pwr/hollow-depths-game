@@ -78,7 +78,11 @@ func _unhandled_input(event):
 
 func _on_InventoryButton_pressed():
  # Znajdź node z UI ekwipunku:
-	var inv_ui = $UI/InventoryGridUI   # lub jeśli używasz SimpleInventoryUI: $UI/SimpleInventoryUI
-	# Przełącz widoczność:
-	inv_ui.visible = not inv_ui.visible
+	var inv_ui = $UI/InventoryGridUI
+	print("Znaleziono Inventory UI node: ", inv_ui) # Sprawdź, czy nie jest null
+	if inv_ui:
+		inv_ui.visible = not inv_ui.visible
+		print("Ustawiono visible na: ", inv_ui.visible)
+	else:
+		printerr("Nie znaleziono node'a InventoryGridUI pod ścieżką $UI/InventoryGridUI!")
 	

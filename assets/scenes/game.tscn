@@ -513,6 +513,7 @@ position = Vector2(25, 40)
 process_mode = 2
 
 [node name="PauseMenu" type="Control" parent="PauseMenuLayer"]
+visible = false
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0

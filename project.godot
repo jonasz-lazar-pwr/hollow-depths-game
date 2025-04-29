@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Hollow Depths"
-run/main_scene="uid://bjs34cbfgjo1f"
+run/main_scene="uid://do4jih7oduo1b"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 

@@ -264,15 +264,26 @@ func handle_digging() -> void:
 			return
 
 	# 4) Kopanie terenu
-	var tile_id = ground_tilemap.get_cell_source_id(cell)
+	var tile_id = ground_tilemap.get_cell_source_id(cell) # 'cell' zamiast 'target_map_coords' z twojego kodu
 	if tile_id == -1:
 		stop_digging()
 		return
 
 	var tile_data = ground_tilemap.get_cell_tile_data(cell)
 	if tile_data and tile_data.get_custom_data("diggable"):
+		# >>> DODAJ TE LINIE <<<
+		var mouse_pos = get_global_mouse_position() # Potrzebujemy pozycji myszy
+		$AnimatedSprite2D.flip_h = mouse_pos.x < global_position.x # Odwróć sprite jeśli trzeba
+		if mouse_pos.y > global_position.y + 4: # Sprawdź czy mysz jest znacząco poniżej gracza (dodaj mały offset np. 4 piksele)
+			digging_animation = "dig_under"
+			print("Setting animation to dig_under") # Debug
+		else:
+			digging_animation = "dig"
+			print("Setting animation to dig") # Debug
+
+
 		# uruchom timer
-		start_digging(cell)
+		start_digging(cell) # 'cell' zamiast 'target_map_coords'
 	else:
 		stop_digging()
 

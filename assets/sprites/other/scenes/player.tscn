@@ -1,12 +1,15 @@
-[gd_scene load_steps=42 format=3 uid="uid://4yp0qu72jr2b"]
+[gd_scene load_steps=45 format=3 uid="uid://4yp0qu72jr2b"]
 
 [ext_resource type="Script" uid="uid://cq0ybetkfcej5" path="res://scripts/player.gd" id="1_g2els"]
 [ext_resource type="Texture2D" uid="uid://owxmkmo3hff" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner_AllAnimations_SpriteSheet.png" id="2_g2els"]
+[ext_resource type="PackedScene" uid="uid://dmf6diflfftrc" path="res://assets/sprites/other/scenes/ladder.tscn" id="2_mpqlg"]
+[ext_resource type="Resource" uid="uid://pmkg1u7amds4" path="res://assets/inventory/ladder.tres" id="3_l2ycw"]
 [ext_resource type="AudioStream" uid="uid://ympmury34vme" path="res://assets/sounds/ladder-climbing.mp3" id="3_qhqgy"]
 [ext_resource type="AudioStream" uid="uid://bawabjij02gso" path="res://assets/sounds/jump.wav" id="4_qlg0r"]
 [ext_resource type="AudioStream" uid="uid://b6hbsvqkflhua" path="res://assets/sounds/walk3.ogg" id="5_qlg0r"]
 [ext_resource type="AudioStream" uid="uid://bbhbi0jxvy13x" path="res://assets/sounds/ladder-create.ogg" id="6_fjrip"]
 [ext_resource type="AudioStream" uid="uid://y63k8i7xjsa6" path="res://assets/sounds/ladder-destroy.ogg" id="7_smehm"]
+[ext_resource type="AudioStream" uid="uid://dqu0216h86oxu" path="res://assets/sounds/dig2.mp3" id="8_16a80"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_y4r1p"]
 atlas = ExtResource("2_g2els")
@@ -270,7 +273,6 @@ void fragment() {
 "
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_psqw3"]
-load_path = "res://.godot/imported/crack1.png-386db6912d1cb3bda5f918e88c14b82c.ctex"
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_a0lea"]
 shader = SubResource("Shader_hs3jg")
@@ -283,6 +285,8 @@ shader_parameter/noise_tex = SubResource("CompressedTexture2D_psqw3")
 z_index = 1
 collision_layer = 2
 script = ExtResource("1_g2els")
+ladder_scene = ExtResource("2_mpqlg")
+ladder_item_type = ExtResource("3_l2ycw")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -8)
@@ -312,5 +316,8 @@ stream = ExtResource("6_fjrip")
 stream = ExtResource("7_smehm")
 
 [node name="DigProgressSprite" type="Sprite2D" parent="."]
-visible = false
 material = SubResource("ShaderMaterial_a0lea")
+
+[node name="DigSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("8_16a80")
+volume_db = 0.599

@@ -114,8 +114,10 @@ func has_space_for_item(item: InventoryItem) -> bool:
 
 # Put an item into the inventory
 func put(item: InventoryItem) -> bool:
-	if not has_space_for_item(item):
+	if item.item_type == null:
+		printerr("Inventory.put(): otrzymałem InventoryItem bez ustawionego item_type!")
 		return false
+
 	
 	# Try to stack the item in an existing slot
 	for slot in slots:

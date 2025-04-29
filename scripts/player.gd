@@ -9,7 +9,8 @@ const MIN_FALL_TILES_FOR_DAMAGE: int = 3 # Minimalna liczba kafelków spadku, ab
 const DAMAGE_PER_EXTRA_TILE_PERCENT: float = 10.0 # Procent HP odejmowany za każdy dodatkowy kafelek ponad próg
 
 var ladder_stack = 0
-var starting_inventory = {"ladder": 5} # Przykładowy ekwipunek
+@export var inventory: Inventory
+
 
 var max_hp: float = 100.0  # Maksymalne punkty życia
 var current_hp: float = 100.0 # Aktualne punkty życia
@@ -24,11 +25,13 @@ var digging_interval = 0.4 # Częstotliwość "uderzeń" (w sekundach)
 var digging_target = null # Aktualne koordynaty kopiowanego bloku
 var digging_damage = 25.0 # Ile "uderzenie" zmniejsza wytrzymałość
 var digging_animation = "dig"
-@export var ladder_item_type: InventoryItemType
+
 @export var ladder_scene: PackedScene
-@export var ground_tilemap: TileMapLayer
+@onready var ground_tilemap: TileMapLayer = $"../TileMap/Ground"
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
-@export var inventory: Inventory
+@export var ladder_item_type: InventoryItemType  # <<< to dodaj
+@export var initial_ladders: int = 5
+
 # Dźwięki – Twoje dodatki:
 @onready var LadderClimbSound: AudioStreamPlayer2D = $LadderClimbSound
 @onready var WalkSound: AudioStreamPlayer2D = $WalkSound
@@ -42,19 +45,26 @@ signal health_updated(new_hp, max_hp_value)     # Sygnał aktualizacji HP
 signal player_died                             # Sygnał śmierci gracza
 
 func _ready() -> void:
-	 # 1) Migruj starting_inventory do resource’u Inventory:
-	if starting_inventory.has("ladder") and ladder_item_type:
-		var count = starting_inventory["ladder"]
-		for i in range(count):
-			var new_item := InventoryItem.new()
-			new_item.item_type = ladder_item_type
-			inventory.put(new_item)
-		# (opcjonalnie) skasuj tę pozycję, żeby nie zrobić migracji drugi raz:
-		starting_inventory.erase("ladder")
-		
-	if not ground_tilemap:
-		printerr("Player: Ground TileMapLayer not assigned!")
-	print("Player ready at: ", global_position, " Ladders:", starting_inventory.get("ladder", 0))
+	# 1) Jeżeli ktoś zapomniał podpiąć Inventory w Inspectorze,
+	#    to utwórz je programowo:
+	if inventory == null:
+		inventory = Inventory.new()
+	if ladder_scene == null:
+		ladder_scene = preload("res://assets/scenes/ladder.tscn")
+	if ladder_item_type == null:
+		ladder_item_type = preload("res://assets/inventory/ladder.tres")
+	# ground_tilemap – przykład z gotową ścieżką:
+	if not is_instance_valid(ground_tilemap):
+		ground_tilemap = get_parent().get_node("TileMap/Ground") as TileMapLayer
+	# 2) Wypakuj drabinki do ekwipunku:
+	if ladder_item_type:
+		for i in range(initial_ladders):
+			var it = InventoryItem.new()
+			it.item_type = ladder_item_type
+			inventory.put(it)
+		# bezpośrednio po wsadzeniu początkowych drabinek:
+		emit_signal("inventory_updated", inventory)
+
 	
 	# Podłączanie sygnałów drabin już istniejących na scenie
 	for ladder in get_tree().get_nodes_in_group("ladders"):
@@ -63,7 +73,6 @@ func _ready() -> void:
 		if not ladder.exited_ladder.is_connected(_on_ladder_exited):
 			ladder.exited_ladder.connect(_on_ladder_exited)
 	
-	inventory_updated.emit(inventory)
 	health_updated.emit(current_hp, max_hp)
 	
 	# Inicjalizacja timera kopania
@@ -226,63 +235,48 @@ func _on_digging_timer_timeout() -> void:
 		return
 	dig_block_progress(digging_target)
 
-func handle_digging():
-	if not ground_tilemap:
+func handle_digging() -> void:
+	if ground_tilemap == null:
 		return
 
-	var mouse_pos = get_global_mouse_position()
-	var target_map_coords = ground_tilemap.local_to_map(mouse_pos)
-	var player_map_coords = ground_tilemap.local_to_map(global_position)
+	# 1) Mysz → lokal TileMap → komórka
+	var mouse_local = ground_tilemap.to_local(get_global_mouse_position())
+	var cell = ground_tilemap.local_to_map(mouse_local)
 
-	var dx = target_map_coords.x - player_map_coords.x
-	var dy = target_map_coords.y - player_map_coords.y
+	# 2) Sprawdź odległość od gracza (1 kafelek max)
+	var player_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(global_position))
+	if (abs(cell.x - player_cell.x) + abs(cell.y - player_cell.y)) > 1:
+		stop_digging()
+		return
 
-	var is_valid_target = (
-		(dx == 0 and dy == 0) or
-		(abs(dx) == 1 and dy == 0) or
-		(dx == 0 and abs(dy) == 1)
-	)
-
-	# Sprawdź, czy kliknięto na istniejącą drabinę (do zebrania)
-	var collected_ladder = false
+	# 3) Zebranie drabiny (jeśli jest Area2D w grupie "ladders")
 	for ladder in get_tree().get_nodes_in_group("ladders"):
-		if ladder is Area2D and is_instance_valid(ladder):
-			var ladder_map_coords = ground_tilemap.local_to_map(ladder.global_position)
-			if ladder_map_coords == target_map_coords:
-				print("Collecting ladder at map coordinates: ", target_map_coords)
-				var it = InventoryItem.new()
-				it.item_type = ladder_item_type
-				inventory.put(it) 
-				ladder.queue_free()
-				LadderRemoveSound.play()
-				collected_ladder = true
-				break
+		var ladder_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(ladder.global_position))
+		if ladder_cell == cell:
+			# wrzuć do ekwipunku
+			var itm = InventoryItem.new()
+			itm.item_type = ladder_item_type
+			inventory.put(itm)
+			ladder.queue_free()
+			LadderRemoveSound.play()
+			emit_signal("inventory_updated", inventory)
+			stop_digging()
+			return
 
-	if collected_ladder:
+	# 4) Kopanie terenu
+	var tile_id = ground_tilemap.get_cell_source_id(cell)
+	if tile_id == -1:
 		stop_digging()
 		return
 
-	if is_valid_target:
-		if not (dx == 0 and dy == 0):
-			var tile_data = ground_tilemap.get_cell_tile_data(target_map_coords)
-			if tile_data:
-				var is_diggable = tile_data.get_custom_data("diggable")
-				if is_diggable:
-					$AnimatedSprite2D.flip_h = mouse_pos.x < global_position.x
-					if mouse_pos.y > global_position.y:
-						digging_animation = "dig_under"
-					else:
-						digging_animation = "dig"
-					start_digging(target_map_coords)
-				else:
-					print("Tile at ", target_map_coords, " is not diggable.")
-					stop_digging()
-			else:
-				print("Nothing to dig or collect at adjacent map coordinates: ", target_map_coords)
-				stop_digging()
+	var tile_data = ground_tilemap.get_cell_tile_data(cell)
+	if tile_data and tile_data.get_custom_data("diggable"):
+		# uruchom timer
+		start_digging(cell)
 	else:
-		print("Target tile at ", target_map_coords, " is out of interaction range from player at ", player_map_coords)
 		stop_digging()
+
+
 
 func start_digging(map_coords: Vector2i) -> void:
 	if digging_target != null and digging_target != map_coords:
@@ -325,29 +319,49 @@ func dig_block_progress(map_coords: Vector2i) -> void:
 
 
 func handle_ladder_placement() -> void:
-	# 1) Czy w ekwipunku są drabiny?
-	if inventory.get_amount_of_item_type(ladder_item_type) <= 0:
-		print("No ladders left in inventory.")
+	if ground_tilemap == null or ladder_scene == null:
 		return
 
-	# 2) Sprawdź, czy w zasięgu…
-	var mouse = get_global_mouse_position()
-	var target = ground_tilemap.local_to_map(mouse)
-	var me    = ground_tilemap.local_to_map(global_position)
-	if abs(target.x - me.x) + abs(target.y - me.y) > 1:
-		print("Too far away to place ladder.")
+	# 1) Ile drabinek w Inventory?
+	var have = inventory.get_amount_of_item_type(ladder_item_type)
+	if have <= 0:
+		print("Nie masz drabinek")
 		return
 
-	# 3) Usuń jedną drabinę z ekwipunku
+	# 2) Mysz → lokal → komórka
+	var cell = ground_tilemap.local_to_map(ground_tilemap.to_local(get_global_mouse_position()))
+	var player_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(global_position))
+	if (abs(cell.x - player_cell.x) + abs(cell.y - player_cell.y)) > 1:
+		return  # za daleko
+
+	# 3) Czy już jest drabina?
+	for ladder in get_tree().get_nodes_in_group("ladders"):
+		var ladder_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(ladder.global_position))
+		if ladder_cell == cell:
+			return
+
+	# 4) Czy pod spodem jest ziemia?
+	if ground_tilemap.get_cell_source_id(cell) != -1:
+		return
+
+	# 5) Instantiate i dodaj do grupy
+	var inst = ladder_scene.instantiate()
+	inst.position = ground_tilemap.map_to_local(cell)
+	get_parent().add_child(inst)
+	inst.add_to_group("ladders")
+	if not inst.entered_ladder.is_connected(_on_ladder_entered):
+		inst.entered_ladder.connect(_on_ladder_entered)
+	if not inst.exited_ladder.is_connected(_on_ladder_exited):
+		inst.exited_ladder.connect(_on_ladder_exited)
+	# 6) Odejmij 1 drabinę z Inventory
 	var list = inventory.get_of_type(ladder_item_type)
 	if list.size() > 0:
-		inventory.take(list[0])  # emituje item_removed
-
-	# 4) Instancjonuj drabinę w świecie
-	var inst = ladder_scene.instantiate()
-	inst.position = ground_tilemap.map_to_local(target)
-	get_parent().add_child(inst)
+		inventory.take(list[0])
+		emit_signal("inventory_updated", inventory)
 	LadderPlaceSound.play()
+
+
+
 
 
 func apply_fall_damage(damage_percent: float) -> void:

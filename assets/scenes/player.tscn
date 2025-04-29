@@ -10,11 +10,11 @@
 [ext_resource type="AudioStream" uid="uid://b6hbsvqkflhua" path="res://assets/sounds/walk3.ogg" id="5_qlg0r"]
 [ext_resource type="AudioStream" uid="uid://bbhbi0jxvy13x" path="res://assets/sounds/ladder-create.ogg" id="6_fjrip"]
 [ext_resource type="AudioStream" uid="uid://y63k8i7xjsa6" path="res://assets/sounds/ladder-destroy.ogg" id="7_smehm"]
-[ext_resource type="AudioStream" path="res://assets/sounds/dig1.mp3" id="8_16a80"]
+[ext_resource type="AudioStream" uid="uid://b0grpfvqb5ua1" path="res://assets/sounds/dig1.mp3" id="8_16a80"]
 
-[sub_resource type="Resource" id="Resource_c6vv5"]
+[sub_resource type="Resource" id="Resource_hrrj1"]
 script = ExtResource("4_hrrj1")
-capacity = 20
+capacity = 5
 metadata/_custom_type_script = "uid://drdwdl32kthr4"
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_y4r1p"]
@@ -261,9 +261,9 @@ height = 12.0
 z_index = 1
 collision_layer = 2
 script = ExtResource("1_g2els")
-ladder_item_type = ExtResource("2_60g6h")
+inventory = SubResource("Resource_hrrj1")
 ladder_scene = ExtResource("3_hrrj1")
-inventory = SubResource("Resource_c6vv5")
+ladder_item_type = ExtResource("2_60g6h")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -8)

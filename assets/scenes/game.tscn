@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=4 uid="uid://bjs34cbfgjo1f"]
+[gd_scene load_steps=25 format=4 uid="uid://bjs34cbfgjo1f"]
 
 [ext_resource type="PackedScene" uid="uid://d00swspj35t6w" path="res://assets/scenes/player.tscn" id="1_uwrxv"]
 [ext_resource type="Script" uid="uid://dm3iihye8a3wy" path="res://scripts/game.gd" id="1_vtaks"]
@@ -10,16 +10,22 @@
 [ext_resource type="Script" uid="uid://cc8x1tg73jmw1" path="res://scripts/game_over_ui.gd" id="5_dinhu"]
 [ext_resource type="Shader" uid="uid://clgqqxru7jg8" path="res://shaders/grayscale_shader.gdshader" id="5_kvpfn"]
 [ext_resource type="PackedScene" uid="uid://dp2tfsw1nyc3v" path="res://assets/scenes/InventoryGridUI.tscn" id="5_s2rys"]
+[ext_resource type="Script" uid="uid://drdwdl32kthr4" path="res://addons/Inventory/Inventory.gd" id="6_fc420"]
 [ext_resource type="AudioStream" uid="uid://bs1k4f7ulp015" path="res://assets/music/steam_gardens_slowed.wav" id="6_p57ef"]
 [ext_resource type="PackedScene" uid="uid://c5jhyxyopykhd" path="res://assets/scenes/ladder.tscn" id="7_u5sy4"]
 [ext_resource type="Script" uid="uid://cmf651j7qk52t" path="res://scripts/ui.gd" id="9_0tnpc"]
-[ext_resource type="Script" path="res://scripts/pause_menu.gd" id="13_i358u"]
+[ext_resource type="Script" uid="uid://djiyhe0r48jcv" path="res://scripts/pause_menu.gd" id="13_i358u"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_yqjtg"]
 distance = -356.0
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_lnu2h"]
 distance = -524.0
+
+[sub_resource type="Resource" id="Resource_kc0sw"]
+script = ExtResource("6_fc420")
+capacity = 5
+metadata/_custom_type_script = "uid://drdwdl32kthr4"
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dinhu"]
 shader = ExtResource("5_kvpfn")
@@ -392,7 +398,14 @@ offset_bottom = 107.0
 theme_override_font_sizes/font_size = 34
 text = "HP: 100/100"
 
-[node name="InventoryGridUI2" parent="UI" instance=ExtResource("5_s2rys")]
+[node name="InventoryGridUI" parent="UI" instance=ExtResource("5_s2rys")]
+anchors_preset = -1
+inventory = SubResource("Resource_kc0sw")
+
+[node name="InventoryButton" type="Button" parent="UI"]
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Ekwipunek"
 
 [node name="GameOverLayer" type="CanvasLayer" parent="."]
 process_mode = 3
@@ -544,7 +557,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Quit to Menu"
 
+[connection signal="pressed" from="UI/InventoryButton" to="." method="_on_InventoryButton_pressed"]
 [connection signal="pressed" from="GameOverLayer/RestartButton" to="GameOverLayer" method="_on_restart_button_pressed"]
 [connection signal="pressed" from="GameOverLayer/QuitButton" to="GameOverLayer" method="_on_quit_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/ResumeButton" to="PauseMenuLayer/PauseMenu" method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/QuitToMenuButton" to="PauseMenuLayer/PauseMenu" method="_on_quit_to_menu_button_pressed"]
+
+[editable path="UI/InventoryGridUI"]

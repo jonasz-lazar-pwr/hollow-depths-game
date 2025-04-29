@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=4 uid="uid://cc0knlk71rl7n"]
+[gd_scene load_steps=23 format=4 uid="uid://cc0knlk71rl7n"]
 
 [ext_resource type="PackedScene" uid="uid://4yp0qu72jr2b" path="res://assets/sprites/other/scenes/player.tscn" id="1_uwrxv"]
 [ext_resource type="Script" uid="uid://dm3iihye8a3wy" path="res://scripts/game.gd" id="1_vtaks"]
@@ -13,7 +13,6 @@
 [ext_resource type="PackedScene" uid="uid://dmf6diflfftrc" path="res://assets/sprites/other/scenes/ladder.tscn" id="7_u5sy4"]
 [ext_resource type="Script" uid="uid://cmf651j7qk52t" path="res://scripts/ui.gd" id="9_0tnpc"]
 [ext_resource type="Script" uid="uid://drdwdl32kthr4" path="res://addons/Inventory/Inventory.gd" id="12_bbsot"]
-[ext_resource type="Resource" uid="uid://pmkg1u7amds4" path="res://assets/inventory/ladder.tres" id="14_nufmh"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_yqjtg"]
 distance = -356.0
@@ -464,8 +463,6 @@ tile_set = SubResource("TileSet_lbhrr")
 position = Vector2(0, -19)
 collision_layer = 1
 inventory = SubResource("Resource_nq78w")
-ladder_scene = ExtResource("7_u5sy4")
-ladder_item_type = ExtResource("14_nufmh")
 
 [node name="Camera2D" type="Camera2D" parent="WorldContainer/Player"]
 position = Vector2(0, -8)

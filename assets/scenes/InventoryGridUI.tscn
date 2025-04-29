@@ -1,31 +1,10 @@
-[gd_scene load_steps=10 format=3 uid="uid://dp2tfsw1nyc3v"]
+[gd_scene load_steps=3 format=3 uid="uid://dp2tfsw1nyc3v"]
 
 [ext_resource type="Script" uid="uid://dwyndp832h061" path="res://addons/Inventory/UI/SimpleInventoryUI.gd" id="1_d6dd7"]
 [ext_resource type="PackedScene" uid="uid://bt4wvwr8oqckg" path="res://assets/scenes/InventoryGridItemUI.tscn" id="2_rtvfl"]
-[ext_resource type="Script" uid="uid://c31st5sfn50qu" path="res://addons/Inventory/InventoryItem.gd" id="3_ke814"]
-[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="4_8ibyw"]
-[ext_resource type="Texture2D" uid="uid://bw7rqy1rxpkyt" path="res://icon.svg" id="5_cj85u"]
-[ext_resource type="Script" uid="uid://drdwdl32kthr4" path="res://addons/Inventory/Inventory.gd" id="6_2wr6k"]
-
-[sub_resource type="Resource" id="Resource_dvw7d"]
-script = ExtResource("4_8ibyw")
-name = "Godot Item :)"
-description = ""
-texture = ExtResource("5_cj85u")
-weight = 1
-stackable = true
-max_stack_size = 99
-
-[sub_resource type="Resource" id="Resource_h5e7a"]
-script = ExtResource("3_ke814")
-item_type = SubResource("Resource_dvw7d")
-custom_name = ""
-
-[sub_resource type="Resource" id="Resource_52ydk"]
-script = ExtResource("6_2wr6k")
-capacity = 5
 
 [node name="InventoryGridUI" type="BoxContainer"]
+top_level = true
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -34,8 +13,6 @@ grow_vertical = 2
 vertical = true
 script = ExtResource("1_d6dd7")
 ItemScene = ExtResource("2_rtvfl")
-initial_items = Array[ExtResource("3_ke814")]([SubResource("Resource_h5e7a")])
-inventory = SubResource("Resource_52ydk")
 container_target_node = NodePath("GridContainer")
 
 [node name="GridContainer" type="GridContainer" parent="."]

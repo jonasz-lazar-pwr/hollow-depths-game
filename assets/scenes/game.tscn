@@ -39,6 +39,7 @@ texture = ExtResource("1_yqjtg")
 3:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 3:0/0/custom_data_0 = true
 3:0/0/custom_data_1 = 500
+3:0/0/custom_data_2 = "res://assets/inventory/ammolite.tres"
 4:0/0 = 0
 4:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 4:0/0/custom_data_0 = true
@@ -338,6 +339,8 @@ custom_data_layer_0/name = "diggable"
 custom_data_layer_0/type = 1
 custom_data_layer_1/name = "durability"
 custom_data_layer_1/type = 2
+custom_data_layer_2/name = "resource_item_path"
+custom_data_layer_2/type = 4
 sources/3 = SubResource("TileSetAtlasSource_lnu2h")
 sources/4 = SubResource("TileSetAtlasSource_lbhrr")
 sources/5 = SubResource("TileSetAtlasSource_u5sy4")
@@ -398,13 +401,12 @@ offset_right = 8.0
 offset_bottom = 8.0
 
 [node name="InventoryGridUI" parent="UI" instance=ExtResource("5_s2rys")]
-visible = false
-custom_minimum_size = Vector2(300, 300)
+custom_minimum_size = Vector2(300, 0)
 offset_left = 500.0
-offset_top = 300.0
-offset_right = 684.0
-offset_bottom = 404.0
-scale = Vector2(2, 2)
+offset_top = 10.0
+offset_right = 184.0
+offset_bottom = -286.0
+scale = Vector2(1.7, 1.7)
 inventory = ExtResource("6_fc420")
 
 [node name="GameOverLayer" type="CanvasLayer" parent="."]

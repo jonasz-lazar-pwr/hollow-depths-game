@@ -9,8 +9,8 @@ region = Rect2(112, 80, 16, 16)
 
 [resource]
 script = ExtResource("1_bqfb1")
-name = "Drabina"
-description = "Drewniana drabina"
+name = "Ladder"
+description = "Wooden ladder used for climbing"
 texture = SubResource("AtlasTexture_x35jx")
 weight = 1
 stackable = true

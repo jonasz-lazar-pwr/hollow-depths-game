@@ -7,7 +7,7 @@
 atlas = ExtResource("1_xxwne")
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xb1tl"]
-size = Vector2(8, 8)
+size = Vector2(9.4, 8.6)
 
 [node name="Ladder" type="Area2D" groups=["ladders"]]
 script = ExtResource("1_xb1tl")
@@ -18,7 +18,6 @@ region_enabled = true
 region_rect = Rect2(112, 80, 16, 16)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(1, 0)
 shape = SubResource("RectangleShape2D_xb1tl")
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]

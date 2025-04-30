@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="InventoryItemType" load_steps=4 format=3 uid="uid://cyu80pqqds688"]
+
+[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="1_13b4e"]
+[ext_resource type="Texture2D" uid="uid://ccy1yfxd6dm23" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_01.png" id="2_ybrhv"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e8185"]
+atlas = ExtResource("2_ybrhv")
+region = Rect2(48, 0, 16, 16)
+
+[resource]
+script = ExtResource("1_13b4e")
+name = "Ammolite"
+description = "A precious stone with a relatively low price. In the shop you can sell it for 1 coin"
+texture = SubResource("AtlasTexture_e8185")
+weight = 1
+stackable = true
+max_stack_size = 99
+metadata/_custom_type_script = "uid://c2kq0x5odumur"

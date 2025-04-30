@@ -311,21 +311,70 @@ func stop_digging() -> void:
 	digging_timer.stop()
 
 func dig_block_progress(map_coords: Vector2i) -> void:
+	# Sprawdź, czy nadal kopiemy ten blok
 	if not digging_blocks.has(map_coords):
 		stop_digging()
 		return
 
-	# Odtwórz dźwięk kopania – sprawdzamy, czy nie jest już odtwarzany, by nie nakładać wielu dźwięków
+	# Odtwórz dźwięk kopania, jeśli nie jest już odtwarzany
 	if not DigSound.playing:
 		DigSound.play()
 
+	# Zmniejsz wytrzymałość bloku
 	digging_blocks[map_coords] -= digging_damage
 	print("Digging block at ", map_coords, " - Durability: ", digging_blocks[map_coords])
-	
+
+	# Sprawdź, czy wytrzymałość spadła do zera lub poniżej
 	if digging_blocks[map_coords] <= 0:
+		print("Block destroyed at", map_coords) # Debug
+
+		# --- POCZĄTEK LOGIKI DODAWANIA PRZEDMIOTU ---
+		# Pobierz dane zniszczonego kafelka
+		var tile_data = ground_tilemap.get_cell_tile_data(map_coords)
+
+		# Sprawdź, czy kafelek ma przypisaną ścieżkę do zasobu
+		if tile_data and tile_data.has_custom_data("resource_item_path"):
+			# Pobierz ścieżkę jako string
+			var item_path = tile_data.get_custom_data("resource_item_path") as String
+
+			# Sprawdź, czy ścieżka nie jest pusta
+			if not item_path.is_empty():
+				# Załaduj zasób InventoryItemType ze ścieżki
+				var item_type = load(item_path) as InventoryItemType
+
+				# Sprawdź, czy zasób został poprawnie załadowany
+				if item_type:
+					print("Granting item based on tile data:", item_type.name) # Debug
+
+					# Stwórz nowy obiekt InventoryItem
+					var new_item = InventoryItem.new()
+					new_item.item_type = item_type # Przypisz załadowany typ
+
+					# Dodaj nowy przedmiot do ekwipunku gracza
+					if inventory.put(new_item):
+						print("Item successfully added to inventory:", item_type.name) # Debug
+						 # Sygnał 'inventory_updated' jest wysyłany automatycznie przez inventory.put()
+						 # Możesz tu dodać np. dźwięk podniesienia przedmiotu, jeśli chcesz
+						 # pickup_sound.play()
+					else:
+						 # Jeśli ekwipunek jest pełny, przedmiot nie zostanie dodany
+						printerr("Could not add item to inventory (maybe full?) for type:", item_type.name)
+						 # Opcjonalnie: Można by tu zaimplementować upuszczenie przedmiotu na ziemię
+				else:
+					# Błąd, jeśli nie udało się załadować zasobu ze ścieżki
+					printerr("Failed to load InventoryItemType from path specified in TileData:", item_path)
+			# else: # Komentarz: nie ma potrzeby logować, jeśli kafelek po prostu nic nie daje
+			#	print("Tile has empty resource_item_path.")
+		# else: # Komentarz: nie ma potrzeby logować, jeśli kafelek nie ma tej warstwy
+		#	print("Tile has no resource_item_path custom data.")
+
+		# --- KONIEC LOGIKI DODAWANIA PRZEDMIOTU ---
+
+		# Usuń kafelek z mapy (teraz robimy to PO sprawdzeniu danych)
 		ground_tilemap.set_cell(map_coords, -1)
+		# Usuń wpis o kopaniu tego bloku
 		digging_blocks.erase(map_coords)
-		# Możesz też dodać inny dźwięk dla zniszczenia bloku, jeśli chcesz
+		# Zatrzymaj proces kopania (timer i animację)
 		stop_digging()
 
 

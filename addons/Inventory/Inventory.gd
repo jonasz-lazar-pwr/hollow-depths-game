@@ -156,11 +156,21 @@ func put_many(items: Array[InventoryItem]) -> bool:
 
 # Remove a specific item from the inventory
 func take(item: InventoryItem):
-	for slot in slots:
-		if item in slot.items:
-			slot.take(item)
-			emit_changed()
-			return
+	if item == null: # Dobre sprawdzenie
+		printerr("Inventory.take(): Attempted to take a null item!")
+		return
+
+	# Zmieniamy pętlę, żeby mieć indeks 'i'
+	for i in range(slots.size()): 
+		var slot = slots[i] # Pobieramy slot używając indeksu
+		
+		if item in slot.items: # Sprawdzamy czy ten konkretny item jest w tym slocie
+			slot.take(item) # Usuwamy item z listy wewnętrznej slotu
+
+			item_removed.emit(item, i) # Emitujemy sygnał dla UI, podając item i INDEKS slotu 'i'
+			
+			emit_changed() # Sygnał dla edytora Godot
+			return # Znaleziono i usunięto, wychodzimy
 
 # Take all items from a specific slot
 func take_all_from_slot(slot_idx: int) -> Array[InventoryItem]:
@@ -187,7 +197,7 @@ func has_item(item: InventoryItem) -> bool:
 			return true
 	return false
 
-# Check if an item of a specific type exists in the inventory
+# Check if an item Qof a specific type exists in the inventory
 func has_item_of_type(type: InventoryItemType) -> bool:
 	for slot in slots:
 		if not slot.is_empty() and slot.type == type:

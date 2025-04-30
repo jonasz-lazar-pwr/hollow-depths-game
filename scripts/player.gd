@@ -343,7 +343,7 @@ func handle_ladder_placement() -> void:
 	var cell = ground_tilemap.local_to_map(ground_tilemap.to_local(get_global_mouse_position()))
 	var player_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(global_position))
 	if (abs(cell.x - player_cell.x) + abs(cell.y - player_cell.y)) > 1:
-		return  # za daleko
+		return  
 
 	# 3) Czy już jest drabina?
 	for ladder in get_tree().get_nodes_in_group("ladders"):
@@ -354,11 +354,30 @@ func handle_ladder_placement() -> void:
 	# 4) Czy pod spodem jest ziemia?
 	if ground_tilemap.get_cell_source_id(cell) != -1:
 		return
-
-	# 5) Instantiate i dodaj do grupy
+	# 5a) Najpierw Instantiate
 	var inst = ladder_scene.instantiate()
-	inst.position = ground_tilemap.map_to_local(cell)
-	get_parent().add_child(inst)
+	if not inst: # Sprawdzenie czy instancja się udała
+		printerr("Failed to instantiate ladder scene!")
+		return
+	# 5b) Oblicz pozycję bazową (lewy górny róg)
+	var center_pos: Vector2 = ground_tilemap.map_to_local(cell)
+	var cell_size_i: Vector2i = ground_tilemap.tile_set.tile_size
+	var cell_size_f: Vector2 = Vector2(cell_size_i) 
+	#var offset_to_top_left: Vector2 = cell_size_f / 2.0
+	var base_position: Vector2 = center_pos
+
+	# 5c) Ustaw ostateczną pozycję z przesunięciem
+	inst.position = base_position + Vector2(1.1, 0.0) 
+	
+	# 5d) Dodaj do sceny i grupy, podłącz sygnały
+	var parent_node = get_parent() # Bezpieczniej jest pobrać rodzica
+	if is_instance_valid(parent_node):
+		parent_node.add_child(inst)
+		print("Added ladder instance:", inst.name, "at position:", inst.position, "to parent:", parent_node.name) # Debug
+	else:
+		printerr("Player has no valid parent to add ladder to!")
+		inst.queue_free() # Zwolnij pamięć, jeśli nie można dodać
+		return
 	inst.add_to_group("ladders")
 	if not inst.entered_ladder.is_connected(_on_ladder_entered):
 		inst.entered_ladder.connect(_on_ladder_entered)

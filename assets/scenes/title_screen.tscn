@@ -24,23 +24,32 @@ texture = ExtResource("1_j8fbj")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="StartButton" type="Button" parent="."]
+[node name="NewGameButton" type="Button" parent="."]
 layout_mode = 0
 offset_left = 720.0
 offset_top = 260.0
 offset_right = 948.0
 offset_bottom = 325.0
 theme_override_font_sizes/font_size = 40
-text = "Start Game"
+text = "New Game"
+
+[node name="LoadGameButton" type="Button" parent="."]
+offset_left = 721.0
+offset_top = 332.0
+offset_right = 949.0
+offset_bottom = 397.0
+theme_override_font_sizes/font_size = 40
+text = "Load Game"
 
 [node name="QuitButton" type="Button" parent="."]
 layout_mode = 0
 offset_left = 720.0
-offset_top = 360.0
+offset_top = 406.0
 offset_right = 948.0
-offset_bottom = 425.0
+offset_bottom = 471.0
 theme_override_font_sizes/font_size = 40
 text = "Quit Game"
 
-[connection signal="pressed" from="StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="NewGameButton" to="." method="_on_new_game_button_pressed"]
+[connection signal="pressed" from="LoadGameButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="QuitButton" to="." method="_on_quit_button_pressed"]

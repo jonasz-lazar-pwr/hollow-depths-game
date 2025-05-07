@@ -1,5 +1,4 @@
 # game.gd
-
 extends Node2D
 
 @onready var player = $WorldContainer/Player # Ścieżka do gracza
@@ -8,25 +7,231 @@ extends Node2D
 # lub: @onready var pause_menu_layer = $PauseMenuLayer
 #@onready var world_container = $WorldContainer
 
+const SAVE_PATH = "res://savegame.res"
 
-# Called when the node enters the scene tree for the first time.
-func _ready():
-    if player:
-        if player.has_signal("player_died"):
-            player.player_died.connect(_on_player_died)
-        else:
-            printerr("Player node does not have 'player_died' signal!")
+const SaveGameDataResource = preload("res://scripts/save_game_data.gd")
+
+func save_game():
+    if not is_instance_valid(player):
+        printerr("Cannot save: Player node is invalid.")
+        return
+
+    var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
+    if not is_instance_valid(ground_tilemap):
+        printerr("Cannot save: Ground TileMap node is invalid.")
+        return
+
+    # --- Prepare Player Data (Dictionary - stays the same) ---
+    var player_data = {
+        "position_x": player.global_position.x,
+        "position_y": player.global_position.y,
+        "current_hp": player.current_hp,
+        "inventory": player.inventory # Store the actual Inventory resource
+    }
+
+    # --- Prepare World Data (Dictionary - stays the same) ---
+    # TileMap State
+    var tilemap_ground_state = {}
+    var used_cells = ground_tilemap.get_used_cells()
+    for cell_coords in used_cells:
+        var source_id = ground_tilemap.get_cell_source_id(cell_coords)
+        if source_id != -1:
+            # Important: ResourceSaver CAN serialize Vector2i keys in dictionaries *within* a Resource
+            tilemap_ground_state[cell_coords] = {
+                "source_id": source_id,
+                "atlas_coords": ground_tilemap.get_cell_atlas_coords(cell_coords),
+                "alternative": ground_tilemap.get_cell_alternative_tile(cell_coords)
+            }
+
+    # Ladder Positions
+    var ladder_positions = []
+    for ladder_node in get_tree().get_nodes_in_group("ladders"):
+        if is_instance_valid(ladder_node):
+            ladder_positions.append({
+                "x": ladder_node.global_position.x,
+                "y": ladder_node.global_position.y
+                })
+
+    var world_data = {
+        "tilemap_ground_state": tilemap_ground_state,
+        "ladders": ladder_positions
+    }
+
+    # --- Assemble Save Data Resource ---
+    # Create an INSTANCE of our custom resource
+    var save_resource = SaveGameDataResource.new() # Use the preloaded script or just SaveGameData.new()
+
+    # Populate its exported variables
+    save_resource.save_format_version = 1.0 # Or get from a constant
+    save_resource.player_data = player_data # Assign the prepared dictionary
+    save_resource.world_data = world_data   # Assign the prepared dictionary
+    # Assign other data if added to SaveGameData
+
+    # --- Save to File ---
+    # Pass the SaveGameData Resource object to ResourceSaver
+    var error = ResourceSaver.save(save_resource, SAVE_PATH) # NO LONGER PASSING A DICTIONARY
+    if error == OK:
+        print("Game saved successfully to: ", ProjectSettings.globalize_path(SAVE_PATH))
+        # show_save_message()
     else:
-        printerr("Game script cannot find Player node at path $WorldContainer/Player!")
+        printerr("Error saving game: ", error)
+        # show_save_error_message()
+
+
+# --- LOAD FUNCTION (Modified) ---
+func load_game():
+    if not FileAccess.file_exists(SAVE_PATH):
+        print("No save file found at: ", SAVE_PATH)
+        return false
+
+    # --- Load from File ---
+    # ResourceLoader now returns our SaveGameData instance or null
+    var loaded_resource = ResourceLoader.load(SAVE_PATH)
+
+    # Check if loading succeeded AND if it's the correct type
+    if loaded_resource == null or not loaded_resource is SaveGameData: # IMPORTANT TYPE CHECK
+        printerr("Error loading save file or file is corrupted/invalid type.")
+        # Optional: Delete corrupted file?
+        # DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH)) # Use globalize_path here too
+        return false
+
+    # --- Version Check ---
+    var save_version = loaded_resource.save_format_version # Access variable directly
+    if save_version != 1.0:
+        printerr("Save file version mismatch! Expected 1.0, got ", save_version)
+        return false
+
+    # --- Reset Current State BEFORE Loading ---
+    if not is_instance_valid(player):
+        printerr("Cannot load: Player node is invalid.")
+        return false
+    var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
+    if not is_instance_valid(ground_tilemap):
+        printerr("Cannot load: Ground TileMap node is invalid.")
+        return false
+
+    ground_tilemap.clear()
+    for ladder_node in get_tree().get_nodes_in_group("ladders"):
+        if is_instance_valid(ladder_node):
+            ladder_node.queue_free()
+    player.stop_digging()
+
+    # --- Apply Loaded Data ---
+    # Player Data - Access from the loaded resource's variables
+    var loaded_player_data = loaded_resource.player_data
+    player.global_position = Vector2(
+        loaded_player_data.get("position_x", player.global_position.x),
+        loaded_player_data.get("position_y", player.global_position.y)
+    )
+    player.current_hp = loaded_player_data.get("current_hp", player.max_hp)
+    var loaded_inventory = loaded_player_data.get("inventory")
+    if loaded_inventory is Inventory:
+        player.inventory = loaded_inventory # Assign the loaded Inventory Resource
+        # Re-emit signals
+        player.emit_signal("inventory_updated", player.inventory)
+        player.emit_signal("health_updated", player.current_hp, player.max_hp)
+        # Reconnect signals if needed (though direct resource assignment might keep them)
+        _reconnect_inventory_signals() # Optional helper function below
+    else:
+        printerr("Loaded inventory data is invalid or missing!")
+        player.inventory = Inventory.new() # Fallback: create a new empty one
+
+
+    # World Data - Access from the loaded resource's variables
+    var loaded_world_data = loaded_resource.world_data
+
+    # TileMap State: Recreate the ground layer
+    var loaded_tilemap_state = loaded_world_data.get("tilemap_ground_state", {})
+    # Vector2i keys ARE usually saved correctly when inside a Resource's dictionary
+    for cell_coords in loaded_tilemap_state:
+        var tile_info = loaded_tilemap_state[cell_coords]
+        ground_tilemap.set_cell(
+            cell_coords, # Should be Vector2i directly
+            tile_info.get("source_id", -1),
+            tile_info.get("atlas_coords", Vector2i(-1, -1)),
+            tile_info.get("alternative", 0)
+        )
+
+    # Ladders: Recreate ladders
+    var loaded_ladders = loaded_world_data.get("ladders", [])
+    var ladders_container = $WorldContainer/Ladders
+    if not is_instance_valid(ladders_container):
+        printerr("Ladders container node is invalid!")
+    else:
+        for ladder_pos_data in loaded_ladders:
+            if not player.ladder_scene:
+                printerr("Player's ladder_scene is not set!")
+                continue
+            var ladder_instance = player.ladder_scene.instantiate()
+            ladder_instance.global_position = Vector2(
+                ladder_pos_data.get("x", 0.0),
+                ladder_pos_data.get("y", 0.0)
+                )
+            ladders_container.add_child(ladder_instance)
+            # Reconnect signals
+            if not ladder_instance.entered_ladder.is_connected(player._on_ladder_entered):
+                ladder_instance.entered_ladder.connect(player._on_ladder_entered)
+            if not ladder_instance.exited_ladder.is_connected(player._on_ladder_exited):
+                ladder_instance.exited_ladder.connect(player._on_ladder_exited)
+
+    print("Game loaded successfully.")
+    get_tree().paused = false
+    return true
+
+# Optional helper function to reconnect inventory signals after loading
+func _reconnect_inventory_signals():
+    if player and player.inventory:
+        var ui_node = $UI # Assuming UI script is attached here
+        if ui_node and ui_node.has_method("_on_inventory_changed"):
+            if not player.inventory.item_added.is_connected(ui_node._on_inventory_changed):
+                player.inventory.item_added.connect(ui_node._on_inventory_changed)
+            if not player.inventory.item_removed.is_connected(ui_node._on_inventory_changed):
+                player.inventory.item_removed.connect(ui_node._on_inventory_changed)
+        # Remove the passthrough connection if it exists, as UI connects directly now
+        # (Or adjust based on your actual signal flow)
+        #if player.inventory.item_added.is_connected(_on_inventory_changed_passthrough):
+        #	player.inventory.item_added.disconnect(_on_inventory_changed_passthrough)
+        #if player.inventory.item_removed.is_connected(_on_inventory_changed_passthrough):
+        #	player.inventory.item_removed.disconnect(_on_inventory_changed_passthrough)
+
+
+# Remove the _on_inventory_changed_passthrough function if not needed
+
+func _ready():
+    # Load game attempt
+    if FileAccess.file_exists(SAVE_PATH):
+        print("Save file found, attempting to load...")
+        if load_game():
+            # If load succeeded, player signals are already handled within load_game
+            pass
+        else:
+            # If load failed, proceed as new game
+            print("Load failed, starting new game.")
+            _initialize_new_game_state()
+    else:
+        print("No save file found, starting new game.")
+        _initialize_new_game_state()
 
     if is_instance_valid(game_over_layer):
-        game_over_layer.visible = false # Ukryj na starcie
-    
+        game_over_layer.visible = false
     if pause_menu:
         pause_menu.hide()
     else:
         printerr("Game script cannot find PauseMenu node!")
 
+
+# Helper to setup connections for a new game or failed load
+func _initialize_new_game_state():
+    if player:
+        if player.has_signal("player_died"):
+            if not player.player_died.is_connected(_on_player_died):
+                player.player_died.connect(_on_player_died)
+        else:
+            printerr("Player node does not have 'player_died' signal!")
+        # Connect inventory signals for UI update
+        _reconnect_inventory_signals() # Use the helper
+    else:
+        printerr("Game script cannot find Player node at path $WorldContainer/Player!")
 
 func _on_player_died():
     print("Game Over sequence started.")

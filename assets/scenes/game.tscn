@@ -473,17 +473,17 @@ volume_db = -30.0
 autoplay = true
 
 [node name="CRT_Shader" parent="." instance=ExtResource("2_gee14")]
-visible = false
 z_index = 4096
 offset_left = -551.0
 offset_top = -325.0
-offset_right = 753.0
+offset_right = 977.0
 offset_bottom = 453.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 script = ExtResource("9_0tnpc")
 
 [node name="LadderCountLabel" type="Label" parent="UI"]
+visible = false
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 50.0
@@ -492,12 +492,12 @@ theme_override_font_sizes/font_size = 34
 text = "Drabiny: 5"
 
 [node name="HealthLabel" type="Label" parent="UI"]
-offset_left = 10.0
-offset_top = 60.0
-offset_right = 281.0
-offset_bottom = 107.0
+offset_left = 24.0
+offset_top = 19.0
+offset_right = 295.0
+offset_bottom = 66.0
 theme_override_font_sizes/font_size = 34
-text = "HP: 100/100"
+text = "❤️: 100/100"
 
 [node name="InventoryButton" type="Button" parent="UI"]
 offset_right = 8.0
@@ -537,21 +537,21 @@ text = "GAME OVER"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="RestartButton" type="Button" parent="GameOverLayer"]
+[node name="ContinueButton" type="Button" parent="GameOverLayer"]
 process_mode = 3
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -86.0
+offset_left = -106.0
 offset_top = -228.0
-offset_right = 134.0
+offset_right = 114.0
 offset_bottom = -163.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 40
-text = "Restart"
+text = "Continue"
 
 [node name="QuitButton" type="Button" parent="GameOverLayer"]
 anchors_preset = 7
@@ -559,14 +559,14 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -86.0
+offset_left = -106.0
 offset_top = -148.0
-offset_right = 134.0
+offset_right = 114.0
 offset_bottom = -83.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 40
-text = "Quit Game"
+text = "Quit"
 
 [node name="WorldContainer" type="Node2D" parent="."]
 
@@ -618,7 +618,6 @@ position = Vector2(25, 40)
 process_mode = 2
 
 [node name="PauseMenu" type="Control" parent="PauseMenuLayer"]
-visible = false
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
@@ -657,15 +656,27 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Resume"
 
+[node name="SaveGameButton" type="Button" parent="PauseMenuLayer/PauseMenu/ButtonContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Save"
+
+[node name="LoadGameButton" type="Button" parent="PauseMenuLayer/PauseMenu/ButtonContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Load"
+
 [node name="QuitToMenuButton" type="Button" parent="PauseMenuLayer/PauseMenu/ButtonContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Quit to Menu"
 
 [connection signal="pressed" from="UI/InventoryButton" to="." method="_on_InventoryButton_pressed"]
-[connection signal="pressed" from="GameOverLayer/RestartButton" to="GameOverLayer" method="_on_restart_button_pressed"]
+[connection signal="pressed" from="GameOverLayer/ContinueButton" to="GameOverLayer" method="_on_restart_button_pressed"]
 [connection signal="pressed" from="GameOverLayer/QuitButton" to="GameOverLayer" method="_on_quit_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/ResumeButton" to="PauseMenuLayer/PauseMenu" method="_on_resume_button_pressed"]
+[connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/SaveGameButton" to="PauseMenuLayer/PauseMenu" method="_on_save_game_button_pressed"]
+[connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/LoadGameButton" to="PauseMenuLayer/PauseMenu" method="_on_load_game_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/QuitToMenuButton" to="PauseMenuLayer/PauseMenu" method="_on_quit_to_menu_button_pressed"]
 
 [editable path="UI/InventoryGridUI"]

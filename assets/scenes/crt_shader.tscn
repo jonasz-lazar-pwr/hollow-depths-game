@@ -4,7 +4,7 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ne4ig"]
 shader = ExtResource("1_70rfk")
-shader_parameter/resolution = Vector2(640, 360)
+shader_parameter/resolution = Vector2(640, 512)
 shader_parameter/scan_line_amount = 1.0
 shader_parameter/warp_amount = 0.1
 shader_parameter/noise_amount = 0.03
@@ -30,5 +30,7 @@ grow_vertical = 2
 [node name="ColorRect" type="ColorRect" parent="."]
 material = SubResource("ShaderMaterial_ne4ig")
 layout_mode = 0
-offset_right = 1153.0
-offset_bottom = 649.0
+offset_left = -7664.0
+offset_top = -8037.0
+offset_right = 7777.0
+offset_bottom = 45440.0

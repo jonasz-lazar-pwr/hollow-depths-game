@@ -7,6 +7,15 @@ extends Node2D
 # lub: @onready var pause_menu_layer = $PauseMenuLayer
 #@onready var world_container = $WorldContainer
 
+# --- Zmienne do podświetlania ---
+@export var highlight_source_id: int = 3 # <<< ZMIEŃ na ID źródła twojego kafelka podświetlenia
+@export var highlight_atlas_coords: Vector2i = Vector2i(0, 7) # <<< ZMIEŃ na koordynaty twojego kafelka podświetlenia
+@export var highlight_modulate: Color = Color(1.0, 1.0, 1.0, 1.0) # Kolor/przezroczystość podświetlenia
+
+var highlighted_dig_cell: Vector2i = Vector2i(-1, -1) # Przechowuje koordynaty podświetlanej komórki
+
+@onready var ground_tilemap = $WorldContainer/TileMap/Ground # Upewnij się, że ścieżka jest poprawna
+
 const SAVE_PATH = "res://savegame.res"
 
 const SaveGameDataResource = preload("res://scripts/save_game_data.gd")
@@ -291,3 +300,106 @@ func _on_InventoryButton_pressed():
     else:
         printerr("Nie znaleziono node'a InventoryGridUI pod ścieżką $UI/InventoryGridUI!")
     
+# game.gd
+# ... (reszta kodu na górze) ...
+
+func _process(delta: float) -> void:
+    # --- Logika podświetlania kopania ---
+    var new_highlight_cell = Vector2i(-1, -1) # Domyślnie brak podświetlenia
+
+    # Sprawdź, czy gracz i tilemap są nadal poprawne
+    if not is_instance_valid(player) or not is_instance_valid(ground_tilemap):
+        if highlighted_dig_cell != Vector2i(-1, -1): # Jeśli coś było podświetlone, zaktualizuj
+            highlighted_dig_cell = Vector2i(-1, -1)
+            queue_redraw() # Odśwież, aby usunąć stare podświetlenie
+        return # Zakończ, jeśli brakuje gracza lub tilemapy
+
+    var mouse_pos = get_global_mouse_position()
+    var mouse_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(mouse_pos))
+    var player_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(player.global_position))
+    var distance = abs(mouse_cell.x - player_cell.x) + abs(mouse_cell.y - player_cell.y)
+
+    # DEBUG PRINT: Zobaczmy koordynaty i dystans
+    # print("Mouse Cell: ", mouse_cell, " Player Cell: ", player_cell, " Distance: ", distance)
+
+    if distance <= 1:
+        # Sprawdź, czy w komórce jest kafelek
+        var source_id = ground_tilemap.get_cell_source_id(mouse_cell)
+        if source_id != -1:
+            # Sprawdź, czy kafelek jest 'diggable'
+            var tile_data = ground_tilemap.get_cell_tile_data(mouse_cell)
+            var is_diggable = tile_data and tile_data.get_custom_data("diggable")
+
+            # DEBUG PRINT: Sprawdźmy dane kafelka
+            # print("  Tile Source ID: ", source_id, " Is Diggable: ", is_diggable)
+
+            if is_diggable:
+                # Sprawdź, czy to nie jest komórka z drabiną
+                var is_ladder = false
+                for ladder in get_tree().get_nodes_in_group("ladders"):
+                    if not is_instance_valid(ladder): continue # Dodatkowe zabezpieczenie
+                    var ladder_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(ladder.global_position))
+                    if ladder_cell == mouse_cell:
+                        is_ladder = true
+                        # DEBUG PRINT:
+                        # print("  Detected Ladder at cell.")
+                        break
+                if not is_ladder:
+                    new_highlight_cell = mouse_cell # Ustaw tę komórkę do podświetlenia
+                    # DEBUG PRINT:
+                    # print("  Setting highlight cell to: ", new_highlight_cell)
+
+    # Zaktualizuj podświetlenie tylko jeśli się zmieniło
+    if new_highlight_cell != highlighted_dig_cell:
+        # DEBUG PRINT:
+        # print("Highlight changed! Old: ", highlighted_dig_cell, " New: ", new_highlight_cell, " Requesting redraw.")
+        highlighted_dig_cell = new_highlight_cell
+        queue_redraw() # Poproś o przerysowanie
+
+# --- Funkcja rysowania ---
+func _draw() -> void:
+    # DEBUG PRINT:
+    # print("_draw() called. Highlighted cell: ", highlighted_dig_cell)
+
+    if highlighted_dig_cell != Vector2i(-1, -1) and is_instance_valid(ground_tilemap) and ground_tilemap.tile_set:
+        var tile_set = ground_tilemap.tile_set
+        var tile_size = tile_set.tile_size
+
+        # Oblicz pozycję i rozmiar docelowy na ekranie
+        # Ważne: map_to_local daje ŚRODEK komórki dla map kwadratowych/prostokątnych
+        var draw_pos_center = ground_tilemap.map_to_local(highlighted_dig_cell)
+        # Potrzebujemy lewego górnego rogu do rysowania
+        var dest_rect = Rect2(draw_pos_center - tile_size / 2.0, tile_size)
+
+        # --- DEBUG: Rysuj prosty prostokąt zamiast tekstury ---
+        #print("  Drawing SIMPLE RED RECT at: ", dest_rect)
+        #draw_rect(dest_rect, Color.RED, false, 2.0) # Rysuj czerwony kontur
+        # -------------------------------------------------------
+
+        # --- Oryginalne rysowanie tekstury ---
+        if not tile_set.has_source(highlight_source_id):
+            print("Highlight Error: TileSet does not have source ID: ", highlight_source_id) # Zmieniono z printerr na print dla testów
+            return
+        var source = tile_set.get_source(highlight_source_id)
+        if not source is TileSetAtlasSource:
+            print("Highlight Error: Source ID ", highlight_source_id, " is not a TileSetAtlasSource.") # Zmieniono z printerr na print dla testów
+            return
+        var atlas_texture = source.texture
+        if not atlas_texture:
+            print("Highlight Error: AtlasSource with ID ", highlight_source_id, " has no texture.") # Zmieniono z printerr na print dla testów
+            return
+        var src_rect = source.get_tile_texture_region(highlight_atlas_coords, 0)
+        if src_rect == Rect2i(0,0,0,0) and not source.has_tile(highlight_atlas_coords):
+             print("Highlight Error: Atlas Coords ", highlight_atlas_coords, " not found in source ID ", highlight_source_id) # Zmieniono z printerr na print dla testów
+             return
+        #print("  Drawing highlight texture: ", atlas_texture.resource_path if atlas_texture else "null", " SrcRect: ", src_rect, " DestRect: ", dest_rect, " Modulate: ", highlight_modulate)
+        draw_texture_rect_region(atlas_texture, dest_rect, src_rect, highlight_modulate)
+        # --- Koniec oryginalnego rysowania ---
+
+    #else: # DEBUG PRINT:
+        #if highlighted_dig_cell == Vector2i(-1,-1):
+            #print("  Not drawing highlight: cell is invalid.")
+        #elif not is_instance_valid(ground_tilemap):
+            #print("  Not drawing highlight: ground_tilemap invalid.")
+        #elif not ground_tilemap.tile_set:
+            #print("  Not drawing highlight: no tileset on ground_tilemap.")

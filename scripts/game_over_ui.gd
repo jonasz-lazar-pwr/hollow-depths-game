@@ -1,5 +1,4 @@
 # game_over_ui.gd
-
 extends CanvasLayer
 
 

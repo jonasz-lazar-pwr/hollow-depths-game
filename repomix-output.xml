@@ -203,6 +203,8 @@ scripts/pause_menu.gd
 scripts/pause_menu.gd.uid
 scripts/player.gd
 scripts/player.gd.uid
+scripts/save_game_data.gd
+scripts/save_game_data.gd.uid
 scripts/title_screen.gd
 scripts/title_screen.gd.uid
 scripts/ui.gd
@@ -7215,43 +7217,6 @@ beat_count=0
 bar_beats=4
 </file>
 
-<file path="assets/scenes/crt_shader.tscn">
-[gd_scene load_steps=3 format=3 uid="uid://cfjwdbp0vsk1a"]
-
-[ext_resource type="Shader" uid="uid://dtcblh51mq0of" path="res://shaders/crt.gdshader" id="1_70rfk"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_ne4ig"]
-shader = ExtResource("1_70rfk")
-shader_parameter/resolution = Vector2(640, 360)
-shader_parameter/scan_line_amount = 1.0
-shader_parameter/warp_amount = 0.1
-shader_parameter/noise_amount = 0.03
-shader_parameter/interference_amount = 0.2
-shader_parameter/grille_amount = 0.1
-shader_parameter/grille_size = 1.0
-shader_parameter/vignette_amount = 0.6
-shader_parameter/vignette_intensity = 0.4
-shader_parameter/aberation_amount = 0.5
-shader_parameter/roll_line_amount = 0.0
-shader_parameter/roll_speed = 1.0
-shader_parameter/scan_line_strength = -8.0
-shader_parameter/pixel_strength = -2.0
-
-[node name="CRT_Shader" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ColorRect" type="ColorRect" parent="."]
-material = SubResource("ShaderMaterial_ne4ig")
-layout_mode = 0
-offset_right = 1153.0
-offset_bottom = 649.0
-</file>
-
 <file path="assets/scenes/InventoryGridItemUI.tscn">
 [gd_scene load_steps=6 format=3 uid="uid://bt4wvwr8oqckg"]
 
@@ -7414,55 +7379,6 @@ shape = SubResource("RectangleShape2D_xb1tl")
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]
 [connection signal="body_exited" from="." to="." method="_on_body_exited"]
-</file>
-
-<file path="assets/scenes/title_screen.tscn">
-[gd_scene load_steps=3 format=3 uid="uid://do4jih7oduo1b"]
-
-[ext_resource type="Texture2D" uid="uid://dy5ixplrptlvo" path="res://img/background_image.png" id="1_j8fbj"]
-[ext_resource type="Script" uid="uid://jpbvw88086wp" path="res://scripts/title_screen.gd" id="1_tlwn0"]
-
-[node name="TitleScreen" type="Control"]
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("1_tlwn0")
-
-[node name="BackgroundImage" type="TextureRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -204.0
-offset_right = 1316.0
-offset_bottom = 608.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("1_j8fbj")
-expand_mode = 3
-stretch_mode = 5
-
-[node name="StartButton" type="Button" parent="."]
-layout_mode = 0
-offset_left = 720.0
-offset_top = 260.0
-offset_right = 948.0
-offset_bottom = 325.0
-theme_override_font_sizes/font_size = 40
-text = "Start Game"
-
-[node name="QuitButton" type="Button" parent="."]
-layout_mode = 0
-offset_left = 720.0
-offset_top = 360.0
-offset_right = 948.0
-offset_bottom = 425.0
-theme_override_font_sizes/font_size = 40
-text = "Quit Game"
-
-[connection signal="pressed" from="StartButton" to="." method="_on_start_button_pressed"]
-[connection signal="pressed" from="QuitButton" to="." method="_on_quit_button_pressed"]
 </file>
 
 <file path="assets/sounds/coin.wav.import">
@@ -8704,33 +8620,6 @@ editor/scale_with_editor_scale=false
 editor/convert_colors_with_editor_theme=false
 </file>
 
-<file path="scripts/game_over_ui.gd">
-# game_over_ui.gd
-
-extends CanvasLayer
-
-
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
-
-
-# Ta funkcja zostanie wywołana po kliknięciu przycisku "RESTART"
-func _on_restart_button_pressed():
-	print("Restart button pressed!")
-	# WAŻNE: Najpierw od-pauzuj grę, inaczej przeładowana scena też będzie spauzowana!
-	get_tree().paused = false
-	# Przeładuj bieżącą scenę (czyli całą scenę 'game.tscn')
-	var error = get_tree().reload_current_scene()
-	if error != OK:
-		printerr("Failed to reload scene! Error code: ", error)
-</file>
-
 <file path="scripts/game_over_ui.gd.uid">
 uid://cc8x1tg73jmw1
 </file>
@@ -8743,49 +8632,26 @@ uid://dm3iihye8a3wy
 uid://xiu1moqcmuwf
 </file>
 
-<file path="scripts/pause_menu.gd">
-# pause_menu.gd
-extends Control
-
-# Ścieżka do sceny menu głównego - upewnij się, że jest poprawna!
-const TITLE_SCREEN_PATH = "res://assets/scenes/title_screen.tscn" # <-- Popraw, jeśli zapisałeś gdzie indziej!
-
-# Funkcja do ukrywania menu i odpauzowywania gry
-func resume_game():
-	get_tree().paused = false
-	hide() # Ukrywa węzeł PauseMenu (i jego dzieci)
-
-# Funkcja do wyjścia do menu głównego
-func quit_to_menu():
-	# WAŻNE: Najpierw odpauzuj, zanim zmienisz scenę
-	get_tree().paused = false
-	var error = get_tree().change_scene_to_file(TITLE_SCREEN_PATH)
-	if error != OK:
-		printerr("Failed to change scene to title screen! Error code: ", error)
-
-# Podłącz sygnały przycisków do tych funkcji w edytorze!
-func _on_resume_button_pressed():
-	print("Resume button pressed")
-	resume_game()
-
-
-func _on_quit_to_menu_button_pressed():
-	print("Quit to Menu button pressed")
-	quit_to_menu()
-
-# Można też dodać obsługę ESC do zamknięcia menu pauzy
-func _unhandled_input(event):
-	if Input.is_action_just_pressed("ui_cancel") and get_tree().paused:
-		resume_game()
-		get_viewport().set_input_as_handled() # Zapobiega przetworzeniu tego samego inputu gdzie indziej
-</file>
-
 <file path="scripts/pause_menu.gd.uid">
 uid://djiyhe0r48jcv
 </file>
 
 <file path="scripts/player.gd.uid">
 uid://cq0ybetkfcej5
+</file>
+
+<file path="scripts/save_game_data.gd">
+# res://scripts/save_game_data.gd
+class_name SaveGameData extends Resource
+
+# Use @export so Godot knows how to save/load these variables
+@export var save_format_version: float = 1.0
+@export var player_data: Dictionary = {}  # Will store player pos, hp, inventory resource
+@export var world_data: Dictionary = {}   # Will store tilemap state, ladder positions
+</file>
+
+<file path="scripts/save_game_data.gd.uid">
+uid://c6aifpq7h0k5m
 </file>
 
 <file path="scripts/title_screen.gd.uid">
@@ -8860,6 +8726,45 @@ weight = 1
 stackable = true
 max_stack_size = 99
 metadata/_custom_type_script = "uid://c2kq0x5odumur"
+</file>
+
+<file path="assets/scenes/crt_shader.tscn">
+[gd_scene load_steps=3 format=3 uid="uid://cfjwdbp0vsk1a"]
+
+[ext_resource type="Shader" uid="uid://dtcblh51mq0of" path="res://shaders/crt.gdshader" id="1_70rfk"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ne4ig"]
+shader = ExtResource("1_70rfk")
+shader_parameter/resolution = Vector2(640, 512)
+shader_parameter/scan_line_amount = 1.0
+shader_parameter/warp_amount = 0.1
+shader_parameter/noise_amount = 0.03
+shader_parameter/interference_amount = 0.2
+shader_parameter/grille_amount = 0.1
+shader_parameter/grille_size = 1.0
+shader_parameter/vignette_amount = 0.6
+shader_parameter/vignette_intensity = 0.4
+shader_parameter/aberation_amount = 0.5
+shader_parameter/roll_line_amount = 0.0
+shader_parameter/roll_speed = 1.0
+shader_parameter/scan_line_strength = -8.0
+shader_parameter/pixel_strength = -2.0
+
+[node name="CRT_Shader" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_ne4ig")
+layout_mode = 0
+offset_left = -7664.0
+offset_top = -8037.0
+offset_right = 7777.0
+offset_bottom = 45440.0
 </file>
 
 <file path="assets/scenes/InventoryGridUI.tscn">
@@ -9238,6 +9143,64 @@ stream = ExtResource("8_16a80")
 volume_db = -8.19
 </file>
 
+<file path="assets/scenes/title_screen.tscn">
+[gd_scene load_steps=3 format=3 uid="uid://do4jih7oduo1b"]
+
+[ext_resource type="Texture2D" uid="uid://dy5ixplrptlvo" path="res://img/background_image.png" id="1_j8fbj"]
+[ext_resource type="Script" uid="uid://jpbvw88086wp" path="res://scripts/title_screen.gd" id="1_tlwn0"]
+
+[node name="TitleScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_tlwn0")
+
+[node name="BackgroundImage" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -204.0
+offset_right = 1316.0
+offset_bottom = 608.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_j8fbj")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NewGameButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 720.0
+offset_top = 260.0
+offset_right = 948.0
+offset_bottom = 325.0
+theme_override_font_sizes/font_size = 40
+text = "New Game"
+
+[node name="LoadGameButton" type="Button" parent="."]
+offset_left = 721.0
+offset_top = 332.0
+offset_right = 949.0
+offset_bottom = 397.0
+theme_override_font_sizes/font_size = 40
+text = "Load Game"
+
+[node name="QuitButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 720.0
+offset_top = 406.0
+offset_right = 948.0
+offset_bottom = 471.0
+theme_override_font_sizes/font_size = 40
+text = "Quit Game"
+
+[connection signal="pressed" from="NewGameButton" to="." method="_on_new_game_button_pressed"]
+[connection signal="pressed" from="LoadGameButton" to="." method="_on_continue_button_pressed"]
+[connection signal="pressed" from="QuitButton" to="." method="_on_quit_button_pressed"]
+</file>
+
 <file path="LICENSE">
 MIT License
 
@@ -9262,27 +9225,89 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 </file>
 
-<file path="scripts/title_screen.gd">
-# title_screen.gd
+<file path="scripts/game_over_ui.gd">
+# game_over_ui.gd
+
+extends CanvasLayer
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+    pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+    pass
+
+
+# Ta funkcja zostanie wywołana po kliknięciu przycisku "RESTART"
+func _on_restart_button_pressed():
+    print("Restart button pressed!")
+    # WAŻNE: Najpierw od-pauzuj grę, inaczej przeładowana scena też będzie spauzowana!
+    get_tree().paused = false
+    # Przeładuj bieżącą scenę (czyli całą scenę 'game.tscn')
+    var error = get_tree().reload_current_scene()
+    if error != OK:
+        printerr("Failed to reload scene! Error code: ", error)
+</file>
+
+<file path="scripts/pause_menu.gd">
+# pause_menu.gd
 extends Control
 
-# Ścieżka do głównej sceny gry - upewnij się, że jest poprawna!
-const GAME_SCENE_PATH = "res://assets/scenes/game.tscn"
+const TITLE_SCREEN_PATH = "res://assets/scenes/title_screen.tscn"
 
-# Nie potrzebujemy _ready ani _process w tym prostym menu
+# Need a reference to the main game node to call save/load
+# Assuming Game node is the grandparent: PauseMenuLayer -> Game
+@onready var game_node = get_parent().get_parent() as Node2D
 
-func _on_start_button_pressed():
-    print("Start button pressed! Loading game scene...")
-    # Zmień scenę na główną scenę gry
-    var error = get_tree().change_scene_to_file(GAME_SCENE_PATH)
+# Funkcja do ukrywania menu i odpauzowywania gry
+func resume_game():
+    get_tree().paused = false
+    hide() # Ukrywa węzeł PauseMenu (i jego dzieci)
+
+# Funkcja do wyjścia do menu głównego
+func quit_to_menu():
+    # WAŻNE: Najpierw odpauzuj, zanim zmienisz scenę
+    get_tree().paused = false
+    var error = get_tree().change_scene_to_file(TITLE_SCREEN_PATH)
     if error != OK:
-        printerr("Failed to change scene to game! Error code: ", error)
+        printerr("Failed to change scene to title screen! Error code: ", error)
+
+# Podłącz sygnały przycisków do tych funkcji w edytorze!
+func _on_resume_button_pressed():
+    print("Resume button pressed")
+    resume_game()
 
 
-func _on_quit_button_pressed():
-    print("Quit button pressed! Exiting application...")
-    # Zamknij grę
-    get_tree().quit()
+func _on_quit_to_menu_button_pressed():
+    print("Quit to Menu button pressed")
+    quit_to_menu()
+
+func _on_save_game_button_pressed():
+    if game_node and game_node.has_method("save_game"):
+        game_node.save_game()
+        # Optionally keep menu open or close it
+        # resume_game()
+    else:
+        printerr("PauseMenu cannot find game_node or save_game method!")
+
+func _on_load_game_button_pressed():
+    if game_node and game_node.has_method("load_game"):
+        # Unpause BEFORE loading if loading from pause menu
+        get_tree().paused = false
+        hide() # Hide menu immediately
+        # Call load_game on the main game node
+        game_node.load_game()
+        # Loading might change nodes, so don't assume 'self' is still valid in complex scenarios
+    else:
+        printerr("PauseMenu cannot find game_node or load_game method!")
+
+func _unhandled_input(event):
+    if Input.is_action_just_pressed("ui_cancel") and get_tree().paused and self.visible: # Only resume if pause menu is visible
+        resume_game()
+        get_viewport().set_input_as_handled()
 </file>
 
 <file path="addons/Inventory/Inventory.gd">
@@ -10197,6 +10222,55 @@ position = Vector2(25, 40)
 [connection signal="pressed" from="GameOverLayer/RestartButton" to="GameOverLayer" method="_on_restart_button_pressed"]
 </file>
 
+<file path="scripts/title_screen.gd">
+# title_screen.gd
+extends Control
+
+# Paths defined as constants for clarity
+const GAME_SCENE_PATH = "res://assets/scenes/game.tscn"
+const SAVE_PATH = "res://savegame.res" # Make sure this matches game.gd
+
+# Get references to the buttons (use % syntax if they are direct children,
+# otherwise adjust paths or use @onready)
+@onready var continue_button: Button = $LoadGameButton # Adjust path if needed
+@onready var new_game_button: Button = $NewGameButton   # Adjust path if needed
+@onready var quit_button: Button = $QuitButton       # Adjust path if needed
+
+func _ready():
+    # Disable the "Continue" button if no save file exists
+    continue_button.disabled = not FileAccess.file_exists(SAVE_PATH)
+
+
+func _on_new_game_button_pressed():
+    print("New Game button pressed!")
+    # Delete existing save file if it exists
+    if FileAccess.file_exists(SAVE_PATH):
+        var err = DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+        if err == OK:
+            print("Existing save file deleted.")
+        else:
+            printerr("Failed to delete existing save file! Error code: ", err)
+            # Optionally show an error to the user, but proceed anyway for a new game
+
+    # Change scene to start the game fresh
+    var error = get_tree().change_scene_to_file(GAME_SCENE_PATH)
+    if error != OK:
+        printerr("Failed to change scene to game! Error code: ", error)
+
+
+func _on_continue_button_pressed(): # Renamed from _on_start_button_pressed
+    print("Continue button pressed! Loading game scene...")
+    # Just change scene. game.gd's _ready() will handle loading the save.
+    var error = get_tree().change_scene_to_file(GAME_SCENE_PATH)
+    if error != OK:
+        printerr("Failed to change scene to game! Error code: ", error)
+
+
+func _on_quit_button_pressed():
+    print("Quit button pressed! Exiting application...")
+    get_tree().quit()
+</file>
+
 <file path="shaders/crt.gdshader">
 /*
 Shader from Godot Shaders - the free shader library.
@@ -10764,7 +10838,6 @@ func _on_player_health_updated(new_hp: float, max_hp_value: float):
 
 <file path="scripts/game.gd">
 # game.gd
-
 extends Node2D
 
 @onready var player = $WorldContainer/Player # Ścieżka do gracza
@@ -10773,25 +10846,240 @@ extends Node2D
 # lub: @onready var pause_menu_layer = $PauseMenuLayer
 #@onready var world_container = $WorldContainer
 
+@export var highlight_source_id: int = 3 # <<< ZMIEŃ na ID źródła twojego kafelka podświetlenia
+@export var highlight_atlas_coords: Vector2i = Vector2i(0, 7) # <<< ZMIEŃ na koordynaty twojego kafelka podświetlenia
+@export var highlight_modulate: Color = Color(1.0, 1.0, 1.0, 0.5) # Kolor/przezroczystość podświetlenia
 
-# Called when the node enters the scene tree for the first time.
-func _ready():
-    if player:
-        if player.has_signal("player_died"):
-            player.player_died.connect(_on_player_died)
-        else:
-            printerr("Player node does not have 'player_died' signal!")
+var highlighted_dig_cell: Vector2i = Vector2i(-1, -1) # Przechowuje koordynaty podświetlanej komórki
+
+@onready var ground_tilemap = $WorldContainer/TileMap/Ground # Upewnij się, że ścieżka jest poprawna
+
+
+const SAVE_PATH = "res://savegame.res"
+
+const SaveGameDataResource = preload("res://scripts/save_game_data.gd")
+
+func save_game():
+    if not is_instance_valid(player):
+        printerr("Cannot save: Player node is invalid.")
+        return
+
+    var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
+    if not is_instance_valid(ground_tilemap):
+        printerr("Cannot save: Ground TileMap node is invalid.")
+        return
+
+    # --- Prepare Player Data (Dictionary - stays the same) ---
+    var player_data = {
+        "position_x": player.global_position.x,
+        "position_y": player.global_position.y,
+        "current_hp": player.current_hp,
+        "inventory": player.inventory # Store the actual Inventory resource
+    }
+
+    # --- Prepare World Data (Dictionary - stays the same) ---
+    # TileMap State
+    var tilemap_ground_state = {}
+    var used_cells = ground_tilemap.get_used_cells()
+    for cell_coords in used_cells:
+        var source_id = ground_tilemap.get_cell_source_id(cell_coords)
+        if source_id != -1:
+            # Important: ResourceSaver CAN serialize Vector2i keys in dictionaries *within* a Resource
+            tilemap_ground_state[cell_coords] = {
+                "source_id": source_id,
+                "atlas_coords": ground_tilemap.get_cell_atlas_coords(cell_coords),
+                "alternative": ground_tilemap.get_cell_alternative_tile(cell_coords)
+            }
+
+    # Ladder Positions
+    var ladder_positions = []
+    for ladder_node in get_tree().get_nodes_in_group("ladders"):
+        if is_instance_valid(ladder_node):
+            ladder_positions.append({
+                "x": ladder_node.global_position.x,
+                "y": ladder_node.global_position.y
+                })
+
+    var world_data = {
+        "tilemap_ground_state": tilemap_ground_state,
+        "ladders": ladder_positions
+    }
+
+    # --- Assemble Save Data Resource ---
+    # Create an INSTANCE of our custom resource
+    var save_resource = SaveGameDataResource.new() # Use the preloaded script or just SaveGameData.new()
+
+    # Populate its exported variables
+    save_resource.save_format_version = 1.0 # Or get from a constant
+    save_resource.player_data = player_data # Assign the prepared dictionary
+    save_resource.world_data = world_data   # Assign the prepared dictionary
+    # Assign other data if added to SaveGameData
+
+    # --- Save to File ---
+    # Pass the SaveGameData Resource object to ResourceSaver
+    var error = ResourceSaver.save(save_resource, SAVE_PATH) # NO LONGER PASSING A DICTIONARY
+    if error == OK:
+        print("Game saved successfully to: ", ProjectSettings.globalize_path(SAVE_PATH))
+        # show_save_message()
     else:
-        printerr("Game script cannot find Player node at path $WorldContainer/Player!")
+        printerr("Error saving game: ", error)
+        # show_save_error_message()
+
+
+# --- LOAD FUNCTION (Modified) ---
+func load_game():
+    if not FileAccess.file_exists(SAVE_PATH):
+        print("No save file found at: ", SAVE_PATH)
+        return false
+
+    # --- Load from File ---
+    # ResourceLoader now returns our SaveGameData instance or null
+    var loaded_resource = ResourceLoader.load(SAVE_PATH)
+
+    # Check if loading succeeded AND if it's the correct type
+    if loaded_resource == null or not loaded_resource is SaveGameData: # IMPORTANT TYPE CHECK
+        printerr("Error loading save file or file is corrupted/invalid type.")
+        # Optional: Delete corrupted file?
+        # DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH)) # Use globalize_path here too
+        return false
+
+    # --- Version Check ---
+    var save_version = loaded_resource.save_format_version # Access variable directly
+    if save_version != 1.0:
+        printerr("Save file version mismatch! Expected 1.0, got ", save_version)
+        return false
+
+    # --- Reset Current State BEFORE Loading ---
+    if not is_instance_valid(player):
+        printerr("Cannot load: Player node is invalid.")
+        return false
+    var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
+    if not is_instance_valid(ground_tilemap):
+        printerr("Cannot load: Ground TileMap node is invalid.")
+        return false
+
+    ground_tilemap.clear()
+    for ladder_node in get_tree().get_nodes_in_group("ladders"):
+        if is_instance_valid(ladder_node):
+            ladder_node.queue_free()
+    player.stop_digging()
+
+    # --- Apply Loaded Data ---
+    # Player Data - Access from the loaded resource's variables
+    var loaded_player_data = loaded_resource.player_data
+    player.global_position = Vector2(
+        loaded_player_data.get("position_x", player.global_position.x),
+        loaded_player_data.get("position_y", player.global_position.y)
+    )
+    player.current_hp = loaded_player_data.get("current_hp", player.max_hp)
+    var loaded_inventory = loaded_player_data.get("inventory")
+    if loaded_inventory is Inventory:
+        player.inventory = loaded_inventory # Assign the loaded Inventory Resource
+        # Re-emit signals
+        player.emit_signal("inventory_updated", player.inventory)
+        player.emit_signal("health_updated", player.current_hp, player.max_hp)
+        # Reconnect signals if needed (though direct resource assignment might keep them)
+        _reconnect_inventory_signals() # Optional helper function below
+    else:
+        printerr("Loaded inventory data is invalid or missing!")
+        player.inventory = Inventory.new() # Fallback: create a new empty one
+
+
+    # World Data - Access from the loaded resource's variables
+    var loaded_world_data = loaded_resource.world_data
+
+    # TileMap State: Recreate the ground layer
+    var loaded_tilemap_state = loaded_world_data.get("tilemap_ground_state", {})
+    # Vector2i keys ARE usually saved correctly when inside a Resource's dictionary
+    for cell_coords in loaded_tilemap_state:
+        var tile_info = loaded_tilemap_state[cell_coords]
+        ground_tilemap.set_cell(
+            cell_coords, # Should be Vector2i directly
+            tile_info.get("source_id", -1),
+            tile_info.get("atlas_coords", Vector2i(-1, -1)),
+            tile_info.get("alternative", 0)
+        )
+
+    # Ladders: Recreate ladders
+    var loaded_ladders = loaded_world_data.get("ladders", [])
+    var ladders_container = $WorldContainer/Ladders
+    if not is_instance_valid(ladders_container):
+        printerr("Ladders container node is invalid!")
+    else:
+        for ladder_pos_data in loaded_ladders:
+            if not player.ladder_scene:
+                printerr("Player's ladder_scene is not set!")
+                continue
+            var ladder_instance = player.ladder_scene.instantiate()
+            ladder_instance.global_position = Vector2(
+                ladder_pos_data.get("x", 0.0),
+                ladder_pos_data.get("y", 0.0)
+                )
+            ladders_container.add_child(ladder_instance)
+            # Reconnect signals
+            if not ladder_instance.entered_ladder.is_connected(player._on_ladder_entered):
+                ladder_instance.entered_ladder.connect(player._on_ladder_entered)
+            if not ladder_instance.exited_ladder.is_connected(player._on_ladder_exited):
+                ladder_instance.exited_ladder.connect(player._on_ladder_exited)
+
+    print("Game loaded successfully.")
+    get_tree().paused = false
+    return true
+
+# Optional helper function to reconnect inventory signals after loading
+func _reconnect_inventory_signals():
+    if player and player.inventory:
+        var ui_node = $UI # Assuming UI script is attached here
+        if ui_node and ui_node.has_method("_on_inventory_changed"):
+            if not player.inventory.item_added.is_connected(ui_node._on_inventory_changed):
+                player.inventory.item_added.connect(ui_node._on_inventory_changed)
+            if not player.inventory.item_removed.is_connected(ui_node._on_inventory_changed):
+                player.inventory.item_removed.connect(ui_node._on_inventory_changed)
+        # Remove the passthrough connection if it exists, as UI connects directly now
+        # (Or adjust based on your actual signal flow)
+        #if player.inventory.item_added.is_connected(_on_inventory_changed_passthrough):
+        #	player.inventory.item_added.disconnect(_on_inventory_changed_passthrough)
+        #if player.inventory.item_removed.is_connected(_on_inventory_changed_passthrough):
+        #	player.inventory.item_removed.disconnect(_on_inventory_changed_passthrough)
+
+
+# Remove the _on_inventory_changed_passthrough function if not needed
+
+func _ready():
+    # Load game attempt
+    if FileAccess.file_exists(SAVE_PATH):
+        print("Save file found, attempting to load...")
+        if load_game():
+            # If load succeeded, player signals are already handled within load_game
+            pass
+        else:
+            # If load failed, proceed as new game
+            print("Load failed, starting new game.")
+            _initialize_new_game_state()
+    else:
+        print("No save file found, starting new game.")
+        _initialize_new_game_state()
 
     if is_instance_valid(game_over_layer):
-        game_over_layer.visible = false # Ukryj na starcie
-    
+        game_over_layer.visible = false
     if pause_menu:
         pause_menu.hide()
     else:
         printerr("Game script cannot find PauseMenu node!")
 
+
+# Helper to setup connections for a new game or failed load
+func _initialize_new_game_state():
+    if player:
+        if player.has_signal("player_died"):
+            if not player.player_died.is_connected(_on_player_died):
+                player.player_died.connect(_on_player_died)
+        else:
+            printerr("Player node does not have 'player_died' signal!")
+        # Connect inventory signals for UI update
+        _reconnect_inventory_signals() # Use the helper
+    else:
+        printerr("Game script cannot find Player node at path $WorldContainer/Player!")
 
 func _on_player_died():
     print("Game Over sequence started.")
@@ -10850,6 +11138,83 @@ func _on_InventoryButton_pressed():
         print("Ustawiono visible na: ", inv_ui.visible)
     else:
         printerr("Nie znaleziono node'a InventoryGridUI pod ścieżką $UI/InventoryGridUI!")
+    
+func _process(delta: float) -> void:
+    # --- Logika podświetlania kopania ---
+    var new_highlight_cell = Vector2i(-1, -1) # Domyślnie brak podświetlenia
+
+    # Sprawdź, czy gracz i tilemap są nadal poprawne
+    if not is_instance_valid(player) or not is_instance_valid(ground_tilemap):
+        if highlighted_dig_cell != Vector2i(-1, -1): # Jeśli coś było podświetlone, zaktualizuj
+            highlighted_dig_cell = Vector2i(-1, -1)
+            queue_redraw()
+        return # Zakończ, jeśli brakuje gracza lub tilemapy
+
+    var mouse_pos = get_global_mouse_position()
+    var mouse_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(mouse_pos))
+    var player_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(player.global_position))
+
+    # Sprawdź odległość (dystans Manhattan <= 1)
+    if abs(mouse_cell.x - player_cell.x) + abs(mouse_cell.y - player_cell.y) <= 1:
+        # Sprawdź, czy w komórce jest kafelek
+        var source_id = ground_tilemap.get_cell_source_id(mouse_cell)
+        if source_id != -1:
+            # Sprawdź, czy kafelek jest 'diggable'
+            var tile_data = ground_tilemap.get_cell_tile_data(mouse_cell)
+            if tile_data and tile_data.get_custom_data("diggable"):
+                # Sprawdź, czy to nie jest komórka z drabiną
+                var is_ladder = false
+                for ladder in get_tree().get_nodes_in_group("ladders"):
+                    if not is_instance_valid(ladder): continue # Dodatkowe zabezpieczenie
+                    var ladder_cell = ground_tilemap.local_to_map(ground_tilemap.to_local(ladder.global_position))
+                    if ladder_cell == mouse_cell:
+                        is_ladder = true
+                        break
+                if not is_ladder:
+                    new_highlight_cell = mouse_cell # Ustaw tę komórkę do podświetlenia
+
+    # Zaktualizuj podświetlenie tylko jeśli się zmieniło
+    if new_highlight_cell != highlighted_dig_cell:
+        highlighted_dig_cell = new_highlight_cell
+        queue_redraw() # Poproś o przerysowanie
+
+# --- Funkcja rysowania ---
+func _draw() -> void:
+    # Rysuj podświetlenie, jeśli mamy poprawną komórkę i TileSet
+    if highlighted_dig_cell != Vector2i(-1, -1) and is_instance_valid(ground_tilemap) and ground_tilemap.tile_set:
+        var tile_set = ground_tilemap.tile_set
+
+        # Sprawdź, czy TileSet ma podane źródło
+        if not tile_set.has_source(highlight_source_id):
+            printerr("Highlight Error: TileSet does not have source ID: ", highlight_source_id)
+            return
+
+        # Pobierz źródło atlasu
+        var source = tile_set.get_source(highlight_source_id)
+        if not source is TileSetAtlasSource:
+            printerr("Highlight Error: Source ID ", highlight_source_id, " is not a TileSetAtlasSource.")
+            return
+
+        # Pobierz teksturę atlasu
+        var atlas_texture = source.texture
+        if not atlas_texture:
+            printerr("Highlight Error: AtlasSource with ID ", highlight_source_id, " has no texture.")
+            return
+
+        # Pobierz region (prostokąt źródłowy) kafelka podświetlenia w atlasie
+        # Zakładamy, że podświetlenie to standardowy kafelek (alternative_id = 0)
+        var src_rect = source.get_tile_texture_region(highlight_atlas_coords, 0)
+        if src_rect == Rect2i(0,0,0,0) and not source.has_tile(highlight_atlas_coords): # Sprawdzenie czy koordynaty są poprawne
+             printerr("Highlight Error: Atlas Coords ", highlight_atlas_coords, " not found in source ID ", highlight_source_id)
+             return
+
+        # Oblicz pozycję i rozmiar docelowy na ekranie
+        var draw_pos_center = ground_tilemap.map_to_local(highlighted_dig_cell)
+        var tile_size = tile_set.tile_size
+        var dest_rect = Rect2(draw_pos_center - tile_size / 2.0, tile_size) # map_to_local daje środek
+
+        # Narysuj region tekstury z atlasu jako podświetlenie
+        draw_texture_rect_region(atlas_texture, dest_rect, src_rect, highlight_modulate)
 </file>
 
 <file path="README.md">
@@ -11123,6 +11488,7 @@ texture = ExtResource("1_yqjtg")
 8: [0],
 &"type": 1
 }
+0:7/0 = 0
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lbhrr"]
 texture = ExtResource("2_lnu2h")
@@ -11358,6 +11724,7 @@ metadata/_better_terrain = {
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_vtaks")
+highlight_modulate = Color(1, 1, 0, 0.501961)
 
 [node name="LeftBoundry" type="StaticBody2D" parent="."]
 position = Vector2(0, -9)
@@ -11384,13 +11751,14 @@ autoplay = true
 z_index = 4096
 offset_left = -551.0
 offset_top = -325.0
-offset_right = 753.0
+offset_right = 977.0
 offset_bottom = 453.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 script = ExtResource("9_0tnpc")
 
 [node name="LadderCountLabel" type="Label" parent="UI"]
+visible = false
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 50.0
@@ -11399,12 +11767,12 @@ theme_override_font_sizes/font_size = 34
 text = "Drabiny: 5"
 
 [node name="HealthLabel" type="Label" parent="UI"]
-offset_left = 10.0
-offset_top = 60.0
-offset_right = 281.0
-offset_bottom = 107.0
+offset_left = 24.0
+offset_top = 19.0
+offset_right = 295.0
+offset_bottom = 66.0
 theme_override_font_sizes/font_size = 34
-text = "HP: 100/100"
+text = "❤️: 100/100"
 
 [node name="InventoryButton" type="Button" parent="UI"]
 offset_right = 8.0
@@ -11444,21 +11812,21 @@ text = "GAME OVER"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="RestartButton" type="Button" parent="GameOverLayer"]
+[node name="ContinueButton" type="Button" parent="GameOverLayer"]
 process_mode = 3
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -86.0
+offset_left = -106.0
 offset_top = -228.0
-offset_right = 134.0
+offset_right = 114.0
 offset_bottom = -163.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 40
-text = "Restart"
+text = "Continue"
 
 [node name="QuitButton" type="Button" parent="GameOverLayer"]
 anchors_preset = 7
@@ -11466,14 +11834,14 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -86.0
+offset_left = -106.0
 offset_top = -148.0
-offset_right = 134.0
+offset_right = 114.0
 offset_bottom = -83.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 40
-text = "Quit Game"
+text = "Quit"
 
 [node name="WorldContainer" type="Node2D" parent="."]
 
@@ -11525,7 +11893,6 @@ position = Vector2(25, 40)
 process_mode = 2
 
 [node name="PauseMenu" type="Control" parent="PauseMenuLayer"]
-visible = false
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
@@ -11564,15 +11931,27 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Resume"
 
+[node name="SaveGameButton" type="Button" parent="PauseMenuLayer/PauseMenu/ButtonContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Save"
+
+[node name="LoadGameButton" type="Button" parent="PauseMenuLayer/PauseMenu/ButtonContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Load"
+
 [node name="QuitToMenuButton" type="Button" parent="PauseMenuLayer/PauseMenu/ButtonContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Quit to Menu"
 
 [connection signal="pressed" from="UI/InventoryButton" to="." method="_on_InventoryButton_pressed"]
-[connection signal="pressed" from="GameOverLayer/RestartButton" to="GameOverLayer" method="_on_restart_button_pressed"]
+[connection signal="pressed" from="GameOverLayer/ContinueButton" to="GameOverLayer" method="_on_restart_button_pressed"]
 [connection signal="pressed" from="GameOverLayer/QuitButton" to="GameOverLayer" method="_on_quit_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/ResumeButton" to="PauseMenuLayer/PauseMenu" method="_on_resume_button_pressed"]
+[connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/SaveGameButton" to="PauseMenuLayer/PauseMenu" method="_on_save_game_button_pressed"]
+[connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/LoadGameButton" to="PauseMenuLayer/PauseMenu" method="_on_load_game_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/QuitToMenuButton" to="PauseMenuLayer/PauseMenu" method="_on_quit_to_menu_button_pressed"]
 
 [editable path="UI/InventoryGridUI"]

@@ -501,7 +501,7 @@ offset_top = 19.0
 offset_right = 295.0
 offset_bottom = 66.0
 theme_override_font_sizes/font_size = 34
-text = "❤️: 100/100"
+text = "❤️ 100/100"
 
 [node name="InventoryButton" type="Button" parent="UI"]
 anchors_preset = 1

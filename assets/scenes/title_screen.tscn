@@ -34,6 +34,7 @@ theme_override_font_sizes/font_size = 40
 text = "New Game"
 
 [node name="LoadGameButton" type="Button" parent="."]
+layout_mode = 0
 offset_left = 721.0
 offset_top = 332.0
 offset_right = 949.0

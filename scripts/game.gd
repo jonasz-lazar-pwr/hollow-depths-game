@@ -125,6 +125,7 @@ func load_game():
             ladder_node.queue_free()
     player.stop_digging()
 
+    _initialize_new_game_state()
     # --- Apply Loaded Data ---
     # Player Data - Access from the loaded resource's variables
     var loaded_player_data = loaded_resource.player_data
@@ -237,7 +238,21 @@ func _initialize_new_game_state():
                 player.player_died.connect(_on_player_died)
         else:
             printerr("Player node does not have 'player_died' signal!")
-        # Connect inventory signals for UI update
+        
+        var ui_node = $UI # Pobierz węzeł UI
+        if ui_node and ui_node.has_method("_on_player_health_updated"): # Sprawdź czy UI i funkcja istnieją
+            if not player.health_updated.is_connected(ui_node._on_player_health_updated):
+                # Połącz sygnał 'health_updated' z gracza z funkcją '_on_player_health_updated' w UI
+                var err = player.health_updated.connect(ui_node._on_player_health_updated)
+                if err != OK:
+                    printerr("GAME ERROR: Failed to connect player.health_updated to ui._on_player_health_updated. Error: ", err)
+                else:
+                    print("GAME INFO: Connected player.health_updated to ui._on_player_health_updated.") # Potwierdzenie w konsoli
+        else:
+            # Komunikaty błędów, jeśli coś poszło nie tak
+            if not ui_node: printerr("GAME ERROR: UI node ($UI) not found for health connection!")
+            elif not ui_node.has_method("_on_player_health_updated"): printerr("GAME ERROR: UI node script does not have _on_player_health_updated method!")
+        
         _reconnect_inventory_signals() # Use the helper
     else:
         printerr("Game script cannot find Player node at path $WorldContainer/Player!")

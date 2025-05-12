@@ -524,6 +524,25 @@ offset_bottom = -286.0
 scale = Vector2(1.7, 1.7)
 inventory = ExtResource("6_fc420")
 
+[node name="GlobalTooltip" type="PanelContainer" parent="UI"]
+visible = false
+z_index = 100
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+
+[node name="TooltipMargin" type="MarginContainer" parent="UI/GlobalTooltip"]
+layout_mode = 2
+
+[node name="TooltipVBox" type="VBoxContainer" parent="UI/GlobalTooltip/TooltipMargin"]
+layout_mode = 2
+
+[node name="TooltipTitle" type="Label" parent="UI/GlobalTooltip/TooltipMargin/TooltipVBox"]
+layout_mode = 2
+
+[node name="TooltipDescription" type="Label" parent="UI/GlobalTooltip/TooltipMargin/TooltipVBox"]
+layout_mode = 2
+
 [node name="GameOverLayer" type="CanvasLayer" parent="."]
 process_mode = 3
 layer = 10

@@ -6,7 +6,9 @@ extends Node2D
 @onready var pause_menu = $PauseMenuLayer/PauseMenu # Upewnij się, że ścieżka jest poprawna!
 # lub: @onready var pause_menu_layer = $PauseMenuLayer
 #@onready var world_container = $WorldContainer
-
+@onready var global_tooltip_panel: PanelContainer = $UI/GlobalTooltip # Upewnij się, że ścieżka jest poprawna
+@onready var global_tooltip_title: Label = $UI/GlobalTooltip/TooltipMargin/TooltipVBox/TooltipTitle
+@onready var global_tooltip_description: Label = $UI/GlobalTooltip/TooltipMargin/TooltipVBox/TooltipDescription
 # --- Zmienne do podświetlania ---
 @export var highlight_source_id: int = 3 # <<< ZMIEŃ na ID źródła twojego kafelka podświetlenia
 @export var highlight_atlas_coords: Vector2i = Vector2i(0, 7) # <<< ZMIEŃ na koordynaty twojego kafelka podświetlenia
@@ -278,6 +280,10 @@ func _reconnect_inventory_signals():
 
 func _ready():
 	# Load game attempt
+	if is_instance_valid(global_tooltip_panel):
+		global_tooltip_panel.visible = false
+	else:
+		printerr("Game: GlobalTooltipPanel not found!")
 	if FileAccess.file_exists(SAVE_PATH):
 		print("Save file found, attempting to load...")
 		if load_game():
@@ -317,7 +323,37 @@ func _ready():
 		elif not is_instance_valid(ground_tilemap.tile_set):
 			printerr("TileSet on Ground TileMap not found for ShopArea position calculation!")
 
+func display_global_tooltip(text_title: String, text_description: String, item_global_rect: Rect2) -> void:
+	if not is_instance_valid(global_tooltip_panel): return
 
+	global_tooltip_title.text = text_title
+	global_tooltip_description.text = text_description
+	
+	# Pozycjonowanie (przykładowe, można ulepszyć)
+	var tooltip_pos = item_global_rect.position + Vector2(item_global_rect.size.x + 10, 0) # 10px na prawo od itemu
+	
+	# Sprawdź granice ekranu (uproszczone)
+	var viewport_size = get_viewport_rect().size
+	global_tooltip_panel.global_position = tooltip_pos # Najpierw ustaw, potem pobierz rozmiar tooltipa
+	
+	# Dopiero po ustawieniu tekstu, rozmiar tooltipa może być poprawny do dalszych obliczeń
+	# Można poczekać jedną klatkę `await get_tree().process_frame` jeśli rozmiar nie jest od razu poprawny
+	var tooltip_size = global_tooltip_panel.size 
+	
+	if tooltip_pos.x + tooltip_size.x > viewport_size.x:
+		tooltip_pos.x = item_global_rect.position.x - tooltip_size.x - 10 # Na lewo od itemu
+	if tooltip_pos.y + tooltip_size.y > viewport_size.y:
+		tooltip_pos.y = viewport_size.y - tooltip_size.y - 5 # Na dole ekranu
+	if tooltip_pos.y < 0:
+		tooltip_pos.y = 5 # Na górze ekranu
+
+	global_tooltip_panel.global_position = tooltip_pos
+	global_tooltip_panel.visible = true
+
+func hide_global_tooltip() -> void:
+	if is_instance_valid(global_tooltip_panel):
+		global_tooltip_panel.visible = false
+		
 # Helper to setup connections for a new game or failed load
 func _initialize_new_game_state():
 	current_purchased_upgrades = []

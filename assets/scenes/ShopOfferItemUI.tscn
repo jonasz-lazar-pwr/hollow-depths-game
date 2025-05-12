@@ -31,28 +31,5 @@ stretch_mode = 5
 layout_mode = 2
 horizontal_alignment = 1
 
-[node name="TooltipPopup" type="PanelContainer" parent="."]
-visible = false
-visibility_layer = 512
-custom_minimum_size = Vector2(20, 10)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="TooltipMargin" type="MarginContainer" parent="TooltipPopup"]
-layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
-
-[node name="TooltipVBox" type="VBoxContainer" parent="TooltipPopup/TooltipMargin"]
-layout_mode = 2
-
-[node name="TooltipLabel" type="Label" parent="TooltipPopup/TooltipMargin/TooltipVBox"]
-layout_mode = 2
-
-[node name="TooltipDescription" type="Label" parent="TooltipPopup/TooltipMargin/TooltipVBox"]
-layout_mode = 2
-
 [node name="BuyButton" type="Button" parent="."]
 layout_mode = 2

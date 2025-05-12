@@ -1,6 +1,20 @@
-[gd_scene load_steps=2 format=3 uid="uid://dsrfhls2ntqa5"]
+[gd_scene load_steps=4 format=3 uid="uid://dsrfhls2ntqa5"]
 
 [ext_resource type="Script" uid="uid://b0e73hbbbsvfc" path="res://scripts/ShopOfferItemUI.gd" id="1_qays3"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qays3"]
+bg_color = Color(0.338473, 0.338473, 0.338473, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c5aka"]
+bg_color = Color(0.221302, 0.221302, 0.221302, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [node name="ShopOfferItemUi" type="VBoxContainer"]
 custom_minimum_size = Vector2(64, 64)
@@ -11,25 +25,28 @@ script = ExtResource("1_qays3")
 
 [node name="BackgroundButton" type="Button" parent="."]
 layout_mode = 2
+size_flags_vertical = 3
 focus_mode = 0
-flat = true
+mouse_default_cursor_shape = 2
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_qays3")
+theme_override_styles/hover = SubResource("StyleBoxFlat_c5aka")
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="BackgroundButton"]
+layout_mode = 2
+offset_top = 14.0
+offset_right = 64.0
+offset_bottom = 89.0
+mouse_filter = 2
+
+[node name="IconAndCountVBox" type="VBoxContainer" parent="BackgroundButton/CenterContainer"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="IconAndCountVBox" type="VBoxContainer" parent="CenterContainer"]
-layout_mode = 2
-mouse_filter = 2
-
-[node name="ItemIcon" type="TextureRect" parent="CenterContainer/IconAndCountVBox"]
+[node name="ItemIcon" type="TextureRect" parent="BackgroundButton/CenterContainer/IconAndCountVBox"]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 stretch_mode = 5
 
-[node name="CountLabel" type="Label" parent="CenterContainer/IconAndCountVBox"]
+[node name="CountLabel" type="Label" parent="BackgroundButton/CenterContainer/IconAndCountVBox"]
 layout_mode = 2
 horizontal_alignment = 1
-
-[node name="BuyButton" type="Button" parent="."]
-layout_mode = 2

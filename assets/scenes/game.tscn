@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=4 uid="uid://bjs34cbfgjo1f"]
+[gd_scene load_steps=26 format=4 uid="uid://bjs34cbfgjo1f"]
 
 [ext_resource type="PackedScene" uid="uid://d00swspj35t6w" path="res://assets/scenes/player.tscn" id="1_uwrxv"]
 [ext_resource type="Script" uid="uid://dm3iihye8a3wy" path="res://scripts/game.gd" id="1_vtaks"]
@@ -21,6 +21,10 @@ distance = -356.0
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_lnu2h"]
 distance = -524.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_fc420"]
+font_size = 12
+font_color = Color(0.74768, 0.74768, 0.74768, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_dinhu"]
 shader = ExtResource("5_kvpfn")
@@ -533,6 +537,10 @@ mouse_filter = 2
 
 [node name="TooltipMargin" type="MarginContainer" parent="UI/GlobalTooltip"]
 layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 7
 
 [node name="TooltipVBox" type="VBoxContainer" parent="UI/GlobalTooltip/TooltipMargin"]
 layout_mode = 2
@@ -542,6 +550,7 @@ layout_mode = 2
 
 [node name="TooltipDescription" type="Label" parent="UI/GlobalTooltip/TooltipMargin/TooltipVBox"]
 layout_mode = 2
+label_settings = SubResource("LabelSettings_fc420")
 
 [node name="GameOverLayer" type="CanvasLayer" parent="."]
 process_mode = 3

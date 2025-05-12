@@ -2,7 +2,7 @@
 extends Control
 
 @onready var offers_container: Container = $Background/MarginContainer/VBoxContainer/OffersScroll/OffersContainer
-@onready var close_button: Button = $Background/MarginContainer/VBoxContainer/CloseButton # Poprawiłem ścieżkę, jeśli VBox jest rodzicem
+@onready var close_button: Button = $Background/MarginContainer/CloseButton # Poprawiłem ścieżkę, jeśli VBox jest rodzicem
 @onready var offers_scroll: ScrollContainer = $Background/MarginContainer/VBoxContainer/OffersScroll
 
 var player_inventory: Inventory = null
@@ -31,6 +31,7 @@ func setup_shop(p_inventory: Inventory, p_game_manager: Node) -> void:
 	print("DEBUG ShopUI: setup_shop called.")
 	player_inventory = p_inventory
 	game_manager = p_game_manager
+	print("DEBUG ShopUI: game_manager in setup_shop is: ", game_manager, " Is it valid? ", is_instance_valid(game_manager))
 	populate_offers()
 
 func populate_offers() -> void:

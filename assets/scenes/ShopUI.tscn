@@ -59,6 +59,7 @@ size_flags_vertical = 4
 [node name="OffersScroll" type="ScrollContainer" parent="Background/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="OffersContainer" type="VBoxContainer" parent="Background/MarginContainer/VBoxContainer/OffersScroll"]
 custom_minimum_size = Vector2(0, 200)

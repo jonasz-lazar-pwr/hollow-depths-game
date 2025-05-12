@@ -3,32 +3,56 @@
 [ext_resource type="Script" uid="uid://b0e73hbbbsvfc" path="res://scripts/ShopOfferItemUI.gd" id="1_qays3"]
 
 [node name="ShopOfferItemUi" type="VBoxContainer"]
-custom_minimum_size = Vector2(0, 80)
-offset_right = 8.0
+custom_minimum_size = Vector2(64, 64)
+offset_right = 64.0
 offset_bottom = 89.0
+mouse_filter = 0
 script = ExtResource("1_qays3")
 
-[node name="TopContent" type="HBoxContainer" parent="."]
+[node name="BackgroundButton" type="Button" parent="."]
 layout_mode = 2
+focus_mode = 0
+flat = true
 
-[node name="Icon" type="TextureRect" parent="TopContent"]
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="IconAndCountVBox" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ItemIcon" type="TextureRect" parent="CenterContainer/IconAndCountVBox"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 stretch_mode = 5
 
-[node name="TextInfo" type="VBoxContainer" parent="TopContent"]
+[node name="CountLabel" type="Label" parent="CenterContainer/IconAndCountVBox"]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="TooltipPopup" type="PanelContainer" parent="."]
+visible = false
+visibility_layer = 512
+custom_minimum_size = Vector2(20, 10)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TooltipMargin" type="MarginContainer" parent="TooltipPopup"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="TooltipVBox" type="VBoxContainer" parent="TooltipPopup/TooltipMargin"]
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="TopContent/TextInfo"]
+[node name="TooltipLabel" type="Label" parent="TooltipPopup/TooltipMargin/TooltipVBox"]
 layout_mode = 2
-horizontal_alignment = 3
 
-[node name="DescriptionLabel" type="Label" parent="TopContent/TextInfo"]
+[node name="TooltipDescription" type="Label" parent="TooltipPopup/TooltipMargin/TooltipVBox"]
 layout_mode = 2
-horizontal_alignment = 3
-
-[node name="CostLabel" type="Label" parent="TopContent/TextInfo"]
-layout_mode = 2
-horizontal_alignment = 3
 
 [node name="BuyButton" type="Button" parent="."]
 layout_mode = 2

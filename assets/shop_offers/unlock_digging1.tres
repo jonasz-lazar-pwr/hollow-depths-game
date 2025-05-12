@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ShopOffer" load_steps=3 format=3 uid="uid://dw27tqjbk4k2l"]
+
+[ext_resource type="Script" uid="uid://chflva3ovnshi" path="res://scripts/ShopOffer.gd" id="1_7uboi"]
+[ext_resource type="Resource" uid="uid://cyu80pqqds688" path="res://assets/inventory/ammolite.tres" id="1_f3u71"]
+
+[resource]
+resource_name = "shop_offer_unlock_level_2_digging"
+script = ExtResource("1_7uboi")
+offer_name = "Access to Level 2"
+description = "Trade 9 Ammolite to gain the ability to mine harder rocks and get to Level 2"
+cost_item = ExtResource("1_f3u71")
+cost_amount = 9
+reward_type = 0
+reward_string_data = "can_dig_level_2"
+reward_float_data = 0.0
+unique_id = "unique_offer_id"

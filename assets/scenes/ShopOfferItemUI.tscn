@@ -1,0 +1,34 @@
+[gd_scene load_steps=2 format=3 uid="uid://dsrfhls2ntqa5"]
+
+[ext_resource type="Script" uid="uid://b0e73hbbbsvfc" path="res://scripts/ShopOfferItemUI.gd" id="1_qays3"]
+
+[node name="ShopOfferItemUi" type="VBoxContainer"]
+custom_minimum_size = Vector2(0, 80)
+offset_right = 8.0
+offset_bottom = 89.0
+script = ExtResource("1_qays3")
+
+[node name="TopContent" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="TopContent"]
+layout_mode = 2
+stretch_mode = 5
+
+[node name="TextInfo" type="VBoxContainer" parent="TopContent"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="TopContent/TextInfo"]
+layout_mode = 2
+horizontal_alignment = 3
+
+[node name="DescriptionLabel" type="Label" parent="TopContent/TextInfo"]
+layout_mode = 2
+horizontal_alignment = 3
+
+[node name="CostLabel" type="Label" parent="TopContent/TextInfo"]
+layout_mode = 2
+horizontal_alignment = 3
+
+[node name="BuyButton" type="Button" parent="."]
+layout_mode = 2

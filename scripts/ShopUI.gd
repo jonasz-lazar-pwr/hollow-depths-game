@@ -16,15 +16,30 @@ var offer_item_scene: PackedScene = preload("res://assets/scenes/ShopOfferItemUI
 
 func _ready() -> void:
 	if is_instance_valid(close_button):
-		print("DEBUG ShopUI: Connecting CloseButton.pressed to close_ui. Button: ", close_button.get_path())
-		if not close_button.pressed.is_connected(close_ui):
+		print("DEBUG ShopUI: Attempting to connect CloseButton.pressed to self.close_ui.")
+		print("DEBUG ShopUI: CloseButton path: ", close_button.get_path())
+		print("DEBUG ShopUI: CloseButton instance: ", close_button)
+
+		# Sprawdzanie, czy sygnał jest już połączony
+		var is_already_connected = false
+		for connection in close_button.pressed.get_connections():
+			if connection.callable.object == self and connection.callable.method == &"close_ui":
+				is_already_connected = true
+				break
+		
+		if not is_already_connected:
 			var err_connect_close = close_button.pressed.connect(close_ui)
 			if err_connect_close == OK:
-				print("DEBUG ShopUI: Connection for CloseButton successful.")
+				print("DEBUG ShopUI: Connection for CloseButton.pressed to self.close_ui successful.")
 			else:
-				printerr("ERROR ShopUI: Failed to connect CloseButton. Error: ", err_connect_close)
+				printerr("ERROR ShopUI: Failed to connect CloseButton.pressed to self.close_ui. Error: ", err_connect_close)
+		else:
+			print("DEBUG ShopUI: CloseButton.pressed was already connected to self.close_ui.")
 	else:
-		printerr("ShopUI: CloseButton not found at path used in @onready var! Path was: $Background/MarginContainer/VBoxContainer/CloseButton")
+		# Ta ścieżka jest z twojego oryginalnego kodu, upewnij się, że jest poprawna
+		printerr("ShopUI: CloseButton not found at path $Background/MarginContainer/CloseButton. Check @onready var path!")
+		# Jeśli używasz ścieżki z VBoxContainer:
+		# printerr("ShopUI: CloseButton not found at path $Background/MarginContainer/VBoxContainer/CloseButton. Check @onready var path!")
 	hide()
 
 func setup_shop(p_inventory: Inventory, p_game_manager: Node) -> void:
@@ -186,3 +201,63 @@ func _on_item_hide_tooltip_requested() -> void:
 		game_manager.hide_global_tooltip()
 	else:
 		printerr("ShopUI: Cannot hide tooltip, game_manager invalid or missing hide_global_tooltip method.")
+
+# res://scripts/ui/ShopUI.gd
+# Zmodyfikuj dodaną wcześniej funkcję _input
+
+func _input(event: InputEvent) -> void:
+	# Loguj każde zdarzenie docierające do ShopUI (możesz to później usunąć)
+	# print("--- ShopUI.gd _input: Event Class: ", event.get_class(), " | Event: ", event)
+
+	if event is InputEventKey:
+		if event.is_pressed() and not event.is_echo():
+			# Loguj naciśnięty klawisz (możesz to później usunąć)
+			# var key_string = OS.get_keycode_string(event.get_physical_keycode_with_modifiers())
+			# print("--- ShopUI.gd _input: KEY PRESSED: ", key_string)
+
+			var should_pass_to_game = false # Flaga, czy przekazać dalej
+
+			# Sprawdź, czy naciśnięto klawisz akcji, które ma obsłużyć game.gd
+			if event.is_action_pressed("ui_cancel"): # Sprawdź ESC
+				print("--- ShopUI.gd _input: Detected 'ui_cancel' (ESC) press.")
+				# Chcemy, aby game.gd obsłużyło ESC do zamknięcia
+				should_pass_to_game = true
+				# Oznaczamy jako obsłużone w ShopUI, aby inne kontrolki w ShopUI go nie dostały
+				get_viewport().set_input_as_handled()
+
+			elif event.is_action_pressed("interact"): # Sprawdź E
+				print("--- ShopUI.gd _input: Detected 'interact' (E) press.")
+				# Chcemy, aby game.gd obsłużyło E do zamknięcia (jeśli jest w shop area)
+				should_pass_to_game = true
+				# Oznaczamy jako obsłużone w ShopUI
+				get_viewport().set_input_as_handled()
+
+			# Możesz dodać inne klawisze, które ShopUI ma ignorować i przekazywać
+			# elif event.is_action_pressed("jakaś_inna_akcja_dla_gry"):
+			#	  should_pass_to_game = true
+			#	  get_viewport().set_input_as_handled()
+
+			# Jeśli zidentyfikowaliśmy klawisz do przekazania
+			if should_pass_to_game:
+				if is_instance_valid(game_manager) and game_manager.has_method("_unhandled_input"):
+					print("--- ShopUI.gd _input: Forwarding event to game_manager._unhandled_input")
+					# Ręcznie wywołaj _unhandled_input w game_manager, przekazując event
+					# To nie jest standardowa metoda, ale symuluje dotarcie tam inputu
+					# UWAGA: Bezpośrednie wywoływanie _unhandled_input może być ryzykowne,
+					# lepszą opcją byłoby wywołanie dedykowanej funkcji w game_manager,
+					# np. game_manager.handle_shop_close_shortcut(event)
+					# Ale na razie spróbujmy tak dla testu:
+					# game_manager._unhandled_input(event) # <--- Bezpośrednie wywołanie (mniej zalecane)
+
+					# --- Lepsze podejście: Wywołaj dedykowaną funkcję w game_manager ---
+					if game_manager.has_method("handle_shop_shortcut"):
+						game_manager.handle_shop_shortcut(event)
+					else:
+						printerr("ShopUI ERROR: game_manager does not have handle_shop_shortcut method!")
+					# --------------------------------------------------------------------
+				else:
+					printerr("ShopUI ERROR: Cannot forward event, game_manager invalid or missing _unhandled_input method.")
+				return # Zakończ przetwarzanie eventu w ShopUI
+
+	# Jeśli zdarzenie nie zostało obsłużone powyżej (np. to był inny klawisz, ruch myszy),
+	# pozwól mu być przetwarzanym normalnie przez Godota (np. dla kliknięcia przycisku Close).

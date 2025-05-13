@@ -253,11 +253,21 @@ func open_shop_ui() -> void:
 	print("Game paused. Shop UI should be open.")
 
 func close_shop_ui() -> void:
-	print("DEBUG game.gd: close_shop_ui() called.") # Debug
+	print("DEBUG game.gd: close_shop_ui() CALLED.")
 	if is_instance_valid(shop_ui_instance):
+		print("DEBUG game.gd: shop_ui_instance is valid. Calling hide(). Currently visible: ", shop_ui_instance.visible)
 		shop_ui_instance.hide()
-	get_tree().paused = false
-	print("Game unpaused. Shop UI should be closed.")
+		print("DEBUG game.gd: shop_ui_instance.hide() called. Now visible: ", shop_ui_instance.visible)
+	else:
+		print("DEBUG game.gd: shop_ui_instance is NOT valid in close_shop_ui().")
+
+	if get_tree() != null:
+		print("DEBUG game.gd: Unpausing game. Current get_tree().paused state: ", get_tree().paused)
+		get_tree().paused = false
+		print("DEBUG game.gd: Game unpaused. New get_tree().paused state: ", get_tree().paused)
+	else:
+		print("DEBUG game.gd: get_tree() is null in close_shop_ui(). Cannot unpause.")
+	print("Game unpaused state should be false. Shop UI should be closed.")
 	
 # Optional helper function to reconnect inventory signals after loading
 func _reconnect_inventory_signals():
@@ -399,39 +409,60 @@ func _on_player_died():
 	# 4. TODO: Przyciski Restart/Quit
 
 # Ta funkcja przechwytuje input, który nie został obsłużony gdzie indziej
-func _unhandled_input(event):
-	# pauza / ESC
-	if Input.is_action_just_pressed("ui_cancel"):
+# game.gd
+func _unhandled_input(event: InputEvent): # Dodanie typu dla 'event' dla jasności
+	# Pauza / ESC
+	# Dla akcji globalnych jak ESC, lepiej używać Input, bo event może być np. ruchem myszy
+	if Input.is_action_just_pressed("ui_cancel"): # POPRAWKA TUTAJ
+		get_viewport().set_input_as_handled() # Ważne, aby zrobić to na początku, jeśli obsługujemy
 		if get_tree().paused:
-			if pause_menu and pause_menu.visible:
+			if is_instance_valid(shop_ui_instance) and shop_ui_instance.visible:
+				print("DEBUG game.gd: ESC pressed, shop UI is open. Closing shop.")
+				close_shop_ui()
+			elif pause_menu and pause_menu.visible:
 				pause_menu.resume_game()
 		else:
+			print("DEBUG game.gd: ESC pressed, game not paused. Opening pause menu.")
 			get_tree().paused = true
 			if pause_menu:
 				pause_menu.show()
-		get_viewport().set_input_as_handled()
+		return
 
-	# przełącz ekwipunek klawiszem I
-	if Input.is_action_just_pressed("ui_inventory"):
-		print("DEBUG: wykryto I!")  # zobaczymy w konsoli
+	# Przełącz ekwipunek klawiszem I
+	if Input.is_action_just_pressed("ui_inventory"): # POPRAWKA TUTAJ
+		get_viewport().set_input_as_handled() # Ważne
+		if is_instance_valid(shop_ui_instance) and shop_ui_instance.visible:
+			print("DEBUG game.gd: 'I' pressed, but shop is open. Doing nothing with inventory.")
+			return
+
+		print("DEBUG game.gd: 'I' (ui_inventory) action JUST pressed.")
 		var inv_ui = $UI/InventoryGridUI  
-		inv_ui.visible = not inv_ui.visible
-		get_viewport().set_input_as_handled()
-		if player_in_shop_area and event.is_action_pressed("interact"): # Załóżmy, że masz akcję "interact" zmapowaną na 'E'
-			if not is_instance_valid(shop_ui_instance) or not shop_ui_instance.visible:
+		if is_instance_valid(inv_ui):
+			inv_ui.visible = not inv_ui.visible
+			print("DEBUG game.gd: InventoryGridUI visibility toggled to: ", inv_ui.visible)
+		else:
+			printerr("DEBUG game.gd: InventoryGridUI node not found at $UI/InventoryGridUI")
+		return
+
+	# Interakcja (np. otwieranie/zamykanie sklepu klawiszem E)
+	# Tutaj również używamy Input, ponieważ event może nie być Key press,
+	# a my chcemy zareagować na akcję zdefiniowaną w InputMap.
+	if Input.is_action_just_pressed("interact"): # POPRAWKA TUTAJ
+		get_viewport().set_input_as_handled() # Ważne
+		print("DEBUG game.gd: Global Input 'interact' (E) action JUST pressed.")
+		if player_in_shop_area:
+			print("DEBUG game.gd: Player IS in shop area.")
+			if is_instance_valid(shop_ui_instance) and shop_ui_instance.visible:
+				print("DEBUG game.gd: Shop UI is valid and VISIBLE. Attempting to CLOSE via 'E'...")
+				close_shop_ui()
+			elif (not is_instance_valid(shop_ui_instance)) or (is_instance_valid(shop_ui_instance) and not shop_ui_instance.visible):
+				print("DEBUG game.gd: Shop UI is not valid OR not visible. Attempting to OPEN via 'E'...")
 				open_shop_ui()
-				get_viewport().set_input_as_handled() # Zatrzymaj dalsze przetwarzanie tego eventu
-		# Można dodać else: close_shop_ui() jeśli chcemy zamykać sklep tym samym klawiszem
-	if player_in_shop_area and event.is_action_pressed("interact"):
-		print("DEBUG: 'interact' action pressed!")
-		if is_instance_valid(shop_ui_instance) and shop_ui_instance.visible: # Jeśli UI jest stworzone I WIDOCZNE
-			print("DEBUG: Shop UI is visible, attempting to close...")
-			close_shop_ui() # Wywołaj zamknięcie
-			get_viewport().set_input_as_handled()
-		elif not is_instance_valid(shop_ui_instance) or not shop_ui_instance.visible: # Jeśli nie jest stworzone LUB jest niewidoczne
-			print("DEBUG: Conditions met to open shop UI...")
-			open_shop_ui()
-			get_viewport().set_input_as_handled()
+			else:
+				print("DEBUG game.gd: 'interact' (E) pressed in shop area, but shop state is unexpected.")
+		else:
+			print("DEBUG game.gd: 'interact' (E) pressed, but player NOT in shop area.")
+		return
 
 
 #
@@ -628,3 +659,35 @@ func _on_shop_area_body_exited(body: Node2D) -> void:
 		# Jeśli UI sklepu jest otwarte, zamknij je
 		if is_instance_valid(shop_ui_instance) and shop_ui_instance.visible:
 			close_shop_ui()
+			
+# game.gd
+# Dodaj tę nową funkcję gdzieś w skrypcie game.gd
+
+func handle_shop_shortcut(event: InputEvent):
+	# Ta funkcja jest wywoływana RĘCZNIE przez ShopUI._input
+	print(">>> game.gd handle_shop_shortcut: Received forwarded event: ", event)
+
+	# Sprawdź, jaka akcja odpowiada temu zdarzeniu
+	# Musimy użyć Input.is_action... bo sam event tego nie powie bezpośrednio
+	if Input.is_action_just_pressed("ui_cancel"):
+		print(">>> game.gd handle_shop_shortcut: Handling forwarded 'ui_cancel' (ESC).")
+		if is_instance_valid(shop_ui_instance) and shop_ui_instance.visible:
+			print("DEBUG game.gd (via shortcut): ESC detected, shop open. Closing.")
+			close_shop_ui()
+		else:
+			print("DEBUG game.gd (via shortcut): ESC detected, but shop not open/visible?")
+		# Nie musimy tutaj robić set_input_as_handled, bo ShopUI już to zrobiło
+		return
+
+	if Input.is_action_just_pressed("interact"):
+		print(">>> game.gd handle_shop_shortcut: Handling forwarded 'interact' (E).")
+		# Zakładamy, że skoro ShopUI jest otwarte, to gracz jest w strefie
+		if is_instance_valid(shop_ui_instance) and shop_ui_instance.visible:
+			print("DEBUG game.gd (via shortcut): 'interact' (E) detected, shop open. Closing.")
+			close_shop_ui()
+		else:
+			print("DEBUG game.gd (via shortcut): 'interact' (E) detected, but shop not open/visible?")
+		# Nie musimy tutaj robić set_input_as_handled
+		return
+
+	# Możesz dodać obsługę innych akcji przekazanych przez ShopUI, jeśli zajdzie potrzeba

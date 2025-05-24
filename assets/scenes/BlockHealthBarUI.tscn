@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3 uid="uid://cric2b4k102i8"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pkhv0"]
+bg_color = Color(0.340339, 0.340339, 0.340339, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i358u"]
+bg_color = Color(0.77975, 0.549982, 0.17848, 1)
+
+[node name="BlockHealthBarUI" type="Control"]
+z_index = 2
+layout_mode = 3
+anchors_preset = 0
+offset_right = 16.0
+offset_bottom = 3.0
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_pkhv0")
+theme_override_styles/fill = SubResource("StyleBoxFlat_i358u")
+value = 100.0
+show_percentage = false

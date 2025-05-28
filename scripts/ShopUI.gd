@@ -26,6 +26,9 @@ var pickaxe_upgrade_offer_template_ref: ShopOffer = preload("res://assets/shop_o
 var pickaxe_icon_texture_ref: Texture2D = preload("res://assets/sprites/icons/pickaxe_icon.tres") # Upewnij się, że ta ścieżka jest poprawna
 var offer_item_scene_ref: PackedScene = preload("res://assets/scenes/ShopOfferItemUI.tscn") # Upewnij się, że ta ścieżka jest poprawna
 
+# Słownik do mapowania instancji UI na obiekty ShopOffer
+var _ui_to_offer_map: Dictionary = {}
+
 func _ready() -> void:
 	print("ShopUI _ready CALLED. Checking initial @onready var values:")
 	print("  _ready - CloseButton: ", close_button)
@@ -48,32 +51,24 @@ func _ready() -> void:
 	
 	hide() # Ukryj na starcie
 
-	# Jeśli dane zostały już ustawione PRZED _ready (mało prawdopodobne, ale dla pewności)
 	if _is_ready_for_data_setup:
 		print("ShopUI _ready: Data was set before _ready. Performing setup now.")
 		_perform_actual_shop_setup()
 
-
-# Ta funkcja jest teraz wywoływana z game.gd, aby przekazać dane
 func set_initial_data_for_shop(p_inventory: Inventory, p_game_manager: Node) -> void:
 	print("ShopUI set_initial_data_for_shop CALLED.")
 	_player_inventory_ref_for_setup = p_inventory
 	_game_manager_ref_for_setup = p_game_manager
 	_is_ready_for_data_setup = true
 
-	# Jeśli _ready już się wykonało (czyli węzeł jest w drzewie i @onready są gotowe),
-	# możemy od razu uruchomić właściwy setup.
 	if is_inside_tree() and get_tree() != null:
-		# Dodatkowe sprawdzenie, czy kluczowe @onready vars są faktycznie dostępne
 		if is_instance_valid(title_label) and is_instance_valid(switch_mode_button) and is_instance_valid(offers_container):
 			print("ShopUI set_initial_data_for_shop: Node is in tree and @onready vars seem valid. Performing setup.")
 			_perform_actual_shop_setup()
 		else:
 			printerr("ShopUI set_initial_data_for_shop ERROR: Node is in tree, BUT @onready vars are NOT valid yet. This is unexpected if _ready already ran.")
-			# W tym miejscu można by dodać mechanizm ponownej próby lub logowania, ale jeśli _ready się wykonało, powinny być OK.
 	else:
-		print("ShopUI set_initial_data_for_shop: Node not in tree yet, or tree not available. Setup will be triggered by _ready.")
-
+		print("ShopUI set_initial_data_for_shop: Node not in tree yet. Setup will be triggered by _ready.")
 
 func _perform_actual_shop_setup():
 	print("ShopUI _perform_actual_shop_setup CALLED. Verifying references before proceeding:")
@@ -83,31 +78,25 @@ func _perform_actual_shop_setup():
 	print("  _perform_actual_shop_setup - SwitchModeButton: ", switch_mode_button)
 	print("  _perform_actual_shop_setup - TitleLabel: ", title_label)
 
-
 	if not is_instance_valid(_player_inventory_ref_for_setup) or not is_instance_valid(_game_manager_ref_for_setup):
 		printerr("ShopUI _perform_actual_shop_setup ERROR: Missing player inventory or game manager reference! Cannot proceed.")
 		return
 
-	# Przypisz referencje do właściwych zmiennych składowych
 	player_inventory = _player_inventory_ref_for_setup
 	game_manager = _game_manager_ref_for_setup
 	
-	_update_ui_for_mode() # Ustawia teksty przycisków/tytułów
-	populate_offers()     # Wypełnia sklep przedmiotami
-
+	_update_ui_for_mode()
+	populate_offers()
 
 func _on_switch_mode_button_pressed():
 	if current_shop_mode == ShopMode.SELL:
 		current_shop_mode = ShopMode.BUY
 	else:
 		current_shop_mode = ShopMode.SELL
-	_update_ui_for_mode() # Zaktualizuj teksty
-	populate_offers()     # Przeładuj oferty
-
+	_update_ui_for_mode()
+	populate_offers()
 
 func _update_ui_for_mode():
-	# Ta funkcja teraz tylko aktualizuje teksty na podstawie current_shop_mode
-	# Zakłada, że title_label i switch_mode_button są już poprawnie zainicjowane przez @onready
 	print("ShopUI _update_ui_for_mode CALLED. Checking @onready vars before use:")
 	print("  _update_ui_for_mode - TitleLabel: ", title_label)
 	print("  _update_ui_for_mode - SwitchModeButton: ", switch_mode_button)
@@ -119,10 +108,9 @@ func _update_ui_for_mode():
 	if current_shop_mode == ShopMode.SELL:
 		title_label.text = "Miner's Exchange - Sell Items"
 		switch_mode_button.text = "Switch to Buy Mode"
-	else: # ShopMode.BUY
+	else: 
 		title_label.text = "Miner's Shop - Buy Upgrades"
 		switch_mode_button.text = "Switch to Sell Mode"
-
 
 func populate_offers() -> void:
 	print("ShopUI populate_offers CALLED. Current mode: ", current_shop_mode)
@@ -134,16 +122,16 @@ func populate_offers() -> void:
 
 	for child in offers_container.get_children():
 		child.queue_free()
+	_ui_to_offer_map.clear() # Wyczyść mapowanie przed ponownym zapełnieniem
 
-	if not player_inventory or not game_manager: # Te powinny być już ustawione przez _perform_actual_shop_setup
+	if not player_inventory or not game_manager:
 		printerr("ShopUI populate_offers ERROR: Inventory or GameManager not set up.")
 		return
 
-	# --- Logika dla trybu SELL ---
 	if current_shop_mode == ShopMode.SELL:
 		var ammolites_owned = player_inventory.get_amount_of_item_type(ammolite_item_type_ref)
 		
-		var dynamic_sell_offer = ShopOffer.new()
+		var dynamic_sell_offer = ShopOffer.new() 
 		dynamic_sell_offer.offer_name = "Sell All Ammolite"
 		dynamic_sell_offer.description = "Sell %d Ammolite for %d Coins." % [ammolites_owned, ammolites_owned * 5]
 		dynamic_sell_offer.cost_item = ammolite_item_type_ref
@@ -157,32 +145,38 @@ func populate_offers() -> void:
 			return
 		
 		offers_container.add_child(offer_item_ui)
-		print("  populate_offers (SELL): Added sell offer UI to container.")
+		_ui_to_offer_map[offer_item_ui] = dynamic_sell_offer
+		print("  populate_offers (SELL): Added sell offer UI. Instance: ", offer_item_ui, " Mapped to offer: ", dynamic_sell_offer.offer_name)
 		
 		if offer_item_ui.has_method("setup_offer"):
 			var can_actually_sell = ammolites_owned > 0
 			offer_item_ui.setup_offer(dynamic_sell_offer, player_inventory, false, can_actually_sell, int(current_shop_mode))
 			
-			if not offer_item_ui.purchase_requested.is_connected(_on_purchase_requested):
-				offer_item_ui.purchase_requested.connect(_on_purchase_requested.bind(dynamic_sell_offer))
+			if offer_item_ui.has_signal("purchase_button_pressed"):
+				if not offer_item_ui.purchase_button_pressed.is_connected(_on_any_offer_item_pressed): # Łączymy z nową funkcją
+					var err_connect = offer_item_ui.purchase_button_pressed.connect(Callable(self, "_on_any_offer_item_pressed").bind(offer_item_ui))
+					if err_connect != OK:
+						printerr("ShopUI (SELL): Failed to connect 'purchase_button_pressed'. Error: ", err_connect)
+					else:
+						print("ShopUI (SELL): Connected 'purchase_button_pressed' for '", dynamic_sell_offer.offer_name, "' to _on_any_offer_item_pressed.")
+			else:
+				printerr("ShopUI (SELL): offer_item_ui (",offer_item_ui,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd")
 			_connect_tooltip_signals(offer_item_ui, dynamic_sell_offer)
 		else:
-			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI for selling does NOT have setup_offer method!")
+			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui, ") for selling does NOT have setup_offer method!")
 
-	# --- Logika dla trybu BUY ---
 	elif current_shop_mode == ShopMode.BUY:
 		var display_offer_for_pickaxe = ShopOffer.new()
-		# Użyj unique_id z załadowanego szablonu, aby identyfikować to ulepszenie
 		display_offer_for_pickaxe.unique_id = pickaxe_upgrade_offer_template_ref.unique_id 
 		display_offer_for_pickaxe.offer_name = "Upgrade Pickaxe (Dig Lvl 2)"
 		
 		var original_cost_ammolite = pickaxe_upgrade_offer_template_ref.cost_amount
-		var buy_cost_in_coins = original_cost_ammolite * 10 # Np. 90 monet
+		var buy_cost_in_coins = original_cost_ammolite * 10
 		display_offer_for_pickaxe.description = "Allows digging harder rocks (Level 2).\nCost: %d Coins" % buy_cost_in_coins
 		
-		display_offer_for_pickaxe.cost_item = null # Ikona będzie specjalna (kilof), nie przedmiot kosztu
-		var current_pickaxe_level_placeholder = 1 # Docelowo pobierz z game_manager
-		display_offer_for_pickaxe.cost_amount = current_pickaxe_level_placeholder # Dla wyświetlenia "Lvl: X"
+		display_offer_for_pickaxe.cost_item = null
+		var current_pickaxe_level_placeholder = 1
+		display_offer_for_pickaxe.cost_amount = current_pickaxe_level_placeholder
 		display_offer_for_pickaxe.reward_type = pickaxe_upgrade_offer_template_ref.reward_type
 
 		var is_already_purchased = false
@@ -200,19 +194,97 @@ func populate_offers() -> void:
 			return
 
 		offers_container.add_child(offer_item_ui_buy)
-		print("  populate_offers (BUY): Added buy offer UI to container.")
+		_ui_to_offer_map[offer_item_ui_buy] = display_offer_for_pickaxe
+		print("  populate_offers (BUY): Added buy offer UI. Instance: ", offer_item_ui_buy, " Mapped to offer: ", display_offer_for_pickaxe.offer_name)
 
 		if offer_item_ui_buy.has_method("setup_offer"):
 			offer_item_ui_buy.setup_offer(display_offer_for_pickaxe, player_inventory, is_already_purchased, can_player_afford, int(current_shop_mode))
-			if not offer_item_ui_buy.purchase_requested.is_connected(_on_purchase_requested):
-				offer_item_ui_buy.purchase_requested.connect(_on_purchase_requested.bind(display_offer_for_pickaxe))
+			
+			if offer_item_ui_buy.has_signal("purchase_button_pressed"):
+				if not offer_item_ui_buy.purchase_button_pressed.is_connected(_on_any_offer_item_pressed): # Łączymy z nową funkcją
+					var err_connect_buy = offer_item_ui_buy.purchase_button_pressed.connect(Callable(self, "_on_any_offer_item_pressed").bind(offer_item_ui_buy))
+					if err_connect_buy != OK:
+						printerr("ShopUI (BUY): Failed to connect 'purchase_button_pressed'. Error: ", err_connect_buy)
+					else:
+						print("ShopUI (BUY): Connected 'purchase_button_pressed' for '", display_offer_for_pickaxe.offer_name, "' to _on_any_offer_item_pressed.")
+			else:
+				printerr("ShopUI (BUY): offer_item_ui_buy (",offer_item_ui_buy,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd")
 			_connect_tooltip_signals(offer_item_ui_buy, display_offer_for_pickaxe)
 		else:
-			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI for buying does NOT have setup_offer method!")
+			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui_buy, ") for buying does NOT have setup_offer method!")
 	
 	if is_instance_valid(offers_scroll):
 		offers_scroll.scroll_vertical = 0
 
+func _on_any_offer_item_pressed(item_ui_instance: Control) -> void:
+	if not _ui_to_offer_map.has(item_ui_instance):
+		printerr("ShopUI _on_any_offer_item_pressed ERROR: Clicked item UI (", item_ui_instance, ") not found in map.")
+		return
+	
+	var offer_to_purchase = _ui_to_offer_map[item_ui_instance] as ShopOffer
+	if not is_instance_valid(offer_to_purchase):
+		printerr("ShopUI _on_any_offer_item_pressed ERROR: Offer from map is invalid for UI: ", item_ui_instance)
+		return
+
+	print("ShopUI: _on_any_offer_item_pressed CALLED for offer: '", offer_to_purchase.offer_name, "' with ID: '", offer_to_purchase.unique_id, "'")
+	
+	if not player_inventory or not game_manager: 
+		printerr("ShopUI _on_any_offer_item_pressed ERROR: Inventory or GameManager not set.")
+		return
+
+	if current_shop_mode == ShopMode.SELL:
+		print("  _on_any_offer_item_pressed: Current mode is SELL.")
+		if offer_to_purchase.unique_id == "SELL_ALL_AMMOLITE_UNIQUE_ID":
+			print("  _on_any_offer_item_pressed: Matched Offer ID: SELL_ALL_AMMOLITE_UNIQUE_ID.")
+			var amount_to_sell = player_inventory.get_amount_of_item_type(ammolite_item_type_ref)
+			print("  _on_any_offer_item_pressed: Amount of ammolite to sell: ", amount_to_sell)
+
+			if amount_to_sell > 0:
+				print("  _on_any_offer_item_pressed: Player has ammolite to sell. Attempting removal...")
+				if game_manager.has_method("remove_items_by_type") and \
+				   game_manager.remove_items_by_type(ammolite_item_type_ref, amount_to_sell):
+					print("  _on_any_offer_item_pressed: Items removed successfully. Attempting to add coins...")
+					if game_manager.has_method("add_player_coins"):
+						game_manager.add_player_coins(amount_to_sell * 5)
+						print("  _on_any_offer_item_pressed: Sold %d Ammolite for %d coins. Refreshing offers." % [amount_to_sell, amount_to_sell * 5])
+					else: 
+						printerr("ShopUI _on_any_offer_item_pressed ERROR: game_manager missing add_player_coins method!")
+					populate_offers()
+				else: 
+					printerr("ShopUI _on_any_offer_item_pressed ERROR: Failed to remove ammolite or game_manager missing remove_items_by_type method.")
+			else: 
+				print("ShopUI _on_any_offer_item_pressed: No ammolite to sell.")
+		else: 
+			printerr("ShopUI _on_any_offer_item_pressed (SELL): Received unknown offer unique_id: '", offer_to_purchase.unique_id, "'")
+	
+	elif current_shop_mode == ShopMode.BUY:
+		print("  _on_any_offer_item_pressed: Current mode is BUY.")
+		if offer_to_purchase.unique_id == pickaxe_upgrade_offer_template_ref.unique_id: # "unique_offer_id"
+			print("  _on_any_offer_item_pressed: Matched Offer ID for pickaxe upgrade.")
+			if not (game_manager.has_method("has_upgrade") and \
+					game_manager.has_method("grant_upgrade") and \
+					game_manager.has_method("get_player_coins") and \
+					game_manager.has_method("remove_player_coins")):
+				printerr("ShopUI _on_any_offer_item_pressed ERROR: game_manager is missing one or more required methods for pickaxe purchase!")
+				return
+
+			if game_manager.has_upgrade(offer_to_purchase.unique_id):
+				print("ShopUI _on_any_offer_item_pressed: Pickaxe upgrade already purchased.")
+				return
+
+			var buy_cost_in_coins = pickaxe_upgrade_offer_template_ref.cost_amount * 10
+			print("  _on_any_offer_item_pressed: Pickaxe cost: ", buy_cost_in_coins, " Player coins: ", game_manager.get_player_coins())
+			if game_manager.get_player_coins() >= buy_cost_in_coins:
+				if game_manager.remove_player_coins(buy_cost_in_coins):
+					game_manager.grant_upgrade(offer_to_purchase.unique_id)
+					print("  _on_any_offer_item_pressed: Purchased Pickaxe Upgrade. Refreshing offers.")
+					populate_offers()
+				else:
+					printerr("ShopUI _on_any_offer_item_pressed ERROR: Failed to remove coins for pickaxe upgrade.")
+			else:
+				print("ShopUI _on_any_offer_item_pressed: Not enough coins for pickaxe upgrade. Need %d." % buy_cost_in_coins)
+		else:
+			printerr("ShopUI _on_any_offer_item_pressed (BUY): Received unknown offer unique_id: '", offer_to_purchase.unique_id, "'")
 
 func _connect_tooltip_signals(item_ui_instance: Control, offer_data: ShopOffer):
 	if not is_instance_valid(item_ui_instance) or not is_instance_valid(offer_data): return
@@ -223,55 +295,6 @@ func _connect_tooltip_signals(item_ui_instance: Control, offer_data: ShopOffer):
 	if item_ui_instance.has_signal("hide_tooltip_requested"):
 		if not item_ui_instance.hide_tooltip_requested.is_connected(_on_item_hide_tooltip_requested):
 			item_ui_instance.hide_tooltip_requested.connect(_on_item_hide_tooltip_requested)
-
-
-func _on_purchase_requested(offer_to_purchase: ShopOffer) -> void:
-	if not player_inventory or not game_manager: # Te powinny być już ustawione
-		printerr("ShopUI _on_purchase_requested ERROR: Inventory or GameManager not set.")
-		return
-	if not is_instance_valid(offer_to_purchase):
-		printerr("ShopUI _on_purchase_requested ERROR: offer_to_purchase is invalid.")
-		return
-
-	if current_shop_mode == ShopMode.SELL:
-		if offer_to_purchase.unique_id == "SELL_ALL_AMMOLITE_UNIQUE_ID":
-			var amount_to_sell = player_inventory.get_amount_of_item_type(ammolite_item_type_ref)
-			if amount_to_sell > 0:
-				if game_manager.has_method("remove_items_by_type") and \
-				   game_manager.remove_items_by_type(ammolite_item_type_ref, amount_to_sell):
-					if game_manager.has_method("add_player_coins"):
-						game_manager.add_player_coins(amount_to_sell * 5)
-					else: printerr("ShopUI _on_purchase_requested ERROR: game_manager missing add_player_coins method!")
-					populate_offers()
-				else: printerr("ShopUI _on_purchase_requested ERROR: Failed to remove ammolite or game_manager missing remove_items_by_type.")
-			else: print("ShopUI _on_purchase_requested: No ammolite to sell.")
-		else: printerr("ShopUI _on_purchase_requested (SELL): Unknown offer unique_id: ", offer_to_purchase.unique_id)
-
-	elif current_shop_mode == ShopMode.BUY:
-		if offer_to_purchase.unique_id == pickaxe_upgrade_offer_template_ref.unique_id:
-			if not (game_manager.has_method("has_upgrade") and \
-					game_manager.has_method("grant_upgrade") and \
-					game_manager.has_method("get_player_coins") and \
-					game_manager.has_method("remove_player_coins")):
-				printerr("ShopUI _on_purchase_requested ERROR: game_manager is missing one or more required methods for pickaxe purchase!")
-				return
-
-			if game_manager.has_upgrade(offer_to_purchase.unique_id):
-				print("ShopUI _on_purchase_requested: Pickaxe upgrade already purchased.")
-				return
-
-			var buy_cost_in_coins = pickaxe_upgrade_offer_template_ref.cost_amount * 10
-			if game_manager.get_player_coins() >= buy_cost_in_coins:
-				if game_manager.remove_player_coins(buy_cost_in_coins):
-					game_manager.grant_upgrade(offer_to_purchase.unique_id)
-					populate_offers()
-				else:
-					printerr("ShopUI _on_purchase_requested ERROR: Failed to remove coins for pickaxe upgrade.")
-			else:
-				print("ShopUI _on_purchase_requested: Not enough coins for pickaxe upgrade. Need %d." % buy_cost_in_coins)
-		else:
-			printerr("ShopUI _on_purchase_requested (BUY): Unknown offer unique_id: ", offer_to_purchase.unique_id)
-
 
 func close_ui() -> void:
 	if is_instance_valid(game_manager):
@@ -284,20 +307,17 @@ func close_ui() -> void:
 		printerr("ShopUI close_ui ERROR: game_manager is not valid.")
 		hide(); get_tree().paused = false
 		
-
 func _on_item_show_tooltip_requested(text_title: String, text_description: String, item_global_rect: Rect2) -> void:
 	if is_instance_valid(game_manager) and game_manager.has_method("display_global_tooltip"):
 		game_manager.display_global_tooltip(text_title, text_description, item_global_rect)
 	else:
 		printerr("ShopUI _on_item_show_tooltip_requested ERROR: Cannot show tooltip, game_manager invalid or missing display_global_tooltip method.")
 
-
 func _on_item_hide_tooltip_requested() -> void:
 	if is_instance_valid(game_manager) and game_manager.has_method("hide_global_tooltip"):
 		game_manager.hide_global_tooltip()
 	else:
 		printerr("ShopUI _on_item_hide_tooltip_requested ERROR: Cannot hide tooltip, game_manager invalid or missing hide_global_tooltip method.")
-
 
 func _input(event: InputEvent) -> void:
 	if not self.visible: return

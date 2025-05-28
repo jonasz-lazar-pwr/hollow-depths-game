@@ -54,6 +54,11 @@ size_flags_vertical = 0
 text = "Miner's Shop"
 horizontal_alignment = 1
 
+[node name="SwitchModeButton" type="Button" parent="Background/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Switch to Buy Mode"
+
 [node name="HSeparator" type="HSeparator" parent="Background/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 4

@@ -9,117 +9,137 @@ signal hide_tooltip_requested()
 @onready var count_label: Label = $BackgroundButton/CenterContainer/IconAndCountVBox/CountLabel
 @onready var background_button: Button = $BackgroundButton
 
-# --- ZDEFINIOWANE KOLORY ---
-const COLOR_NORMAL_CAN_AFFORD: Color = Color("4a4a4a")       # Ciemnoszary, gdy stać
-const COLOR_NORMAL_CANT_AFFORD: Color = Color(0.8, 0.2, 0.2, 1.0) # Czerwony, gdy nie stać
-const COLOR_NORMAL_OWNED: Color = Color(0.3, 0.3, 0.3, 1.0)         # Bardzo ciemnoszary, gdy kupione
+const COLOR_NORMAL_CAN_AFFORD: Color = Color("4a4a4a")
+const COLOR_NORMAL_CANT_AFFORD: Color = Color(0.8, 0.2, 0.2, 1.0) # Czerwony, gdy nie stać/nie można sprzedać
+const COLOR_NORMAL_OWNED: Color = Color(0.3, 0.3, 0.3, 1.0)
 
-const COLOR_HOVER_CAN_AFFORD: Color = Color("6a6a6a")      # Jaśniejszy szary (hover), gdy stać
-const COLOR_HOVER_CANT_AFFORD: Color = Color(0.9, 0.3, 0.3, 1.0) # Jaśniejszy czerwony (hover), gdy nie stać
+const COLOR_HOVER_CAN_AFFORD: Color = Color("6a6a6a")
+const COLOR_HOVER_CANT_AFFORD: Color = Color(0.9, 0.3, 0.3, 1.0)
 
-var current_offer: ShopOffer = null
+var current_offer_ref: ShopOffer = null
 var player_inventory_ref: Inventory = null
+var current_shop_mode_as_int_ref: int # Przechowamy tryb sklepu jako int (0=SELL, 1=BUY z ShopUI.ShopMode)
 
-var _is_owned: bool = false
-var _can_afford: bool = false
+var _is_owned_ref: bool = false
+var _can_afford_ref: bool = false # Czy gracz może sobie pozwolić (kupić) lub czy ma co sprzedać
 var _is_mouse_over: bool = false
+
+# Ikona kilofa - upewnij się, że ścieżka jest poprawna i plik .tres istnieje
+var pickaxe_icon_texture_ref: Texture2D = preload("res://assets/sprites/icons/pickaxe_icon.tres")
+
 
 func _ready() -> void:
 	if is_instance_valid(background_button):
-		background_button.pressed.connect(_on_item_pressed)
+		if not background_button.pressed.is_connected(_on_item_pressed):
+			background_button.pressed.connect(_on_item_pressed)
 		if not background_button.mouse_entered.is_connected(_on_mouse_entered_item_area):
 			background_button.mouse_entered.connect(_on_mouse_entered_item_area)
 		if not background_button.mouse_exited.is_connected(_on_mouse_exited_item_area):
 			background_button.mouse_exited.connect(_on_mouse_exited_item_area)
-		background_button.modulate = COLOR_NORMAL_CANT_AFFORD
 	else:
 		printerr("ShopOfferItemUI: BackgroundButton is not valid in _ready!")
+	_update_visual_state() # Ustawienie domyślnego stanu
+
 
 func _on_item_pressed() -> void:
-	if current_offer and not background_button.disabled:
-		print("DEBUG ShopOfferItemUI: _on_item_pressed, emitting purchase_requested for: ", current_offer.offer_name)
-		purchase_requested.emit(current_offer)
+	if current_offer_ref and not background_button.disabled:
+		purchase_requested.emit(current_offer_ref)
 
-func setup_offer(offer: ShopOffer, p_inventory: Inventory, already_purchased: bool) -> void:
-	print("DEBUG ShopOfferItemUI: setup_offer called with offer: '", (offer.offer_name if offer else "NULL OFFER"), "' already_purchased: ", already_purchased)
-	current_offer = offer
+func setup_offer(offer: ShopOffer, p_inventory: Inventory, already_purchased: bool, can_afford: bool, shop_mode_as_int: int) -> void:
+	current_offer_ref = offer
 	player_inventory_ref = p_inventory
-	_is_owned = already_purchased
+	_is_owned_ref = already_purchased
+	_can_afford_ref = can_afford
+	current_shop_mode_as_int_ref = shop_mode_as_int
 
-	if not is_instance_valid(current_offer):
-		printerr("ShopOfferItemUI: current_offer is null in setup_offer! Aborting setup.")
-		if is_instance_valid(background_button): background_button.disabled = true
-		if is_instance_valid(count_label): count_label.text = "Error"
+	if not is_instance_valid(current_offer_ref):
+		printerr("ShopOfferItemUI: current_offer_ref is null in setup_offer!")
 		if is_instance_valid(item_icon_rect): item_icon_rect.texture = null
+		if is_instance_valid(count_label): count_label.text = "ERR"
+		if is_instance_valid(background_button): background_button.disabled = true
 		_update_visual_state()
 		return
 
-	if is_instance_valid(item_icon_rect):
-		if is_instance_valid(offer.cost_item) and is_instance_valid(offer.cost_item.texture):
-			item_icon_rect.texture = offer.cost_item.texture
+	# 0 odpowiada ShopUI.ShopMode.SELL, 1 odpowiada ShopUI.ShopMode.BUY
+	if current_shop_mode_as_int_ref == 0: # Tryb SELL
+		if current_offer_ref.unique_id == "SELL_ALL_AMMOLITE_UNIQUE_ID":
+			if is_instance_valid(current_offer_ref.cost_item) and is_instance_valid(current_offer_ref.cost_item.texture):
+				item_icon_rect.texture = current_offer_ref.cost_item.texture
+			else:
+				item_icon_rect.texture = null
+			if is_instance_valid(count_label): count_label.text = "x%d" % current_offer_ref.cost_amount
 		else:
-			item_icon_rect.texture = null
-	else:
-		printerr("ShopOfferItemUI: item_icon_rect is null in setup_offer!")
-
-	if is_instance_valid(count_label):
-		count_label.text = "x%d" % offer.cost_amount
-	else:
-		printerr("ShopOfferItemUI: count_label is null in setup_offer!")
-		
-	_can_afford = false
-	if not _is_owned:
-		if p_inventory and is_instance_valid(offer.cost_item):
-			_can_afford = p_inventory.get_amount_of_item_type(offer.cost_item) >= offer.cost_amount
-		elif not is_instance_valid(offer.cost_item) and offer.cost_amount == 0:
-			_can_afford = true
+			printerr("ShopOfferItemUI (SELL mode): Unknown offer type in setup: ", current_offer_ref.unique_id)
 			
+	elif current_shop_mode_as_int_ref == 1: # Tryb BUY
+		# Sprawdź ID oferty ulepszenia kilofa (powinno być "unique_offer_id" z pliku .tres dla pickaxe_upgrade_offer_template_ref)
+		if current_offer_ref.unique_id == "unique_offer_id": 
+			item_icon_rect.texture = pickaxe_icon_texture_ref
+			if is_instance_valid(count_label): count_label.text = "Lvl: %d" % current_offer_ref.cost_amount 
+		else: # Inne oferty kupna (jeśli będą)
+			if is_instance_valid(current_offer_ref.cost_item) and is_instance_valid(current_offer_ref.cost_item.texture):
+				item_icon_rect.texture = current_offer_ref.cost_item.texture
+			else:
+				item_icon_rect.texture = null
+			if is_instance_valid(count_label): count_label.text = "x%d" % current_offer_ref.cost_amount
+	else:
+		printerr("ShopOfferItemUI: Unknown shop mode in setup: ", current_shop_mode_as_int_ref)
+
 	_update_visual_state()
 
+
 func _update_visual_state() -> void:
-	if not is_instance_valid(background_button):
-		printerr("ShopOfferItemUI: Cannot update visual state, background_button is invalid.")
+	if not is_instance_valid(background_button): # Dodatkowe zabezpieczenie
 		return
 
-	if _is_owned:
+	if _is_owned_ref and current_shop_mode_as_int_ref == 1: # "Owned" ma sens tylko w trybie BUY
 		background_button.modulate = COLOR_NORMAL_OWNED
 		background_button.disabled = true
-		if is_instance_valid(count_label): count_label.text = "Owned"
+		if is_instance_valid(count_label):
+			if current_offer_ref and current_offer_ref.unique_id == "unique_offer_id": # ID dla kilofa
+				count_label.text = "Owned (Lvl %d)" % current_offer_ref.cost_amount
+			else:
+				count_label.text = "Owned"
 	else:
-		background_button.disabled = not _can_afford
+		background_button.disabled = not _can_afford_ref
+		
+		var normal_color = COLOR_NORMAL_CANT_AFFORD
+		var hover_color = COLOR_HOVER_CANT_AFFORD
+
+		if _can_afford_ref:
+			normal_color = COLOR_NORMAL_CAN_AFFORD
+			hover_color = COLOR_HOVER_CAN_AFFORD
 		
 		if _is_mouse_over:
-			if _can_afford:
-				background_button.modulate = COLOR_HOVER_CAN_AFFORD
-			else:
-				background_button.modulate = COLOR_HOVER_CANT_AFFORD
-		else: 
-			if _can_afford:
-				background_button.modulate = COLOR_NORMAL_CAN_AFFORD
-			else:
-				background_button.modulate = COLOR_NORMAL_CANT_AFFORD
+			background_button.modulate = hover_color
+		else:
+			background_button.modulate = normal_color
 		
-		if is_instance_valid(count_label) and count_label.text == "Owned" and is_instance_valid(current_offer): # Sprawdzamy czy current_offer jest valid
-			count_label.text = "x%d" % current_offer.cost_amount
+		# Przywróć tekst licznika, jeśli nie był "Owned" (np. po zmianie trybu lub stanu _can_afford_ref)
+		# Ta część jest ważna, aby licznik/poziom się poprawnie aktualizował, gdy oferta nie jest "Owned"
+		if current_offer_ref:
+			if current_shop_mode_as_int_ref == 0 and current_offer_ref.unique_id == "SELL_ALL_AMMOLITE_UNIQUE_ID":
+				if is_instance_valid(count_label): count_label.text = "x%d" % current_offer_ref.cost_amount
+			elif current_shop_mode_as_int_ref == 1:
+				if current_offer_ref.unique_id == "unique_offer_id": # ID dla kilofa
+					if is_instance_valid(count_label): count_label.text = "Lvl: %d" % current_offer_ref.cost_amount
+				elif is_instance_valid(count_label) and is_instance_valid(current_offer_ref.cost_item): # Dla innych ofert kupna z cost_item
+					count_label.text = "x%d" % current_offer_ref.cost_amount
+				elif is_instance_valid(count_label): # Jeśli oferta kupna nie ma cost_item, ale ma cost_amount (np. tylko koszt w monetach)
+					count_label.text = "" # Lub coś innego, jeśli potrzebne
 
 
 func _on_mouse_entered_item_area() -> void:
 	_is_mouse_over = true
-	if current_offer != null:
-		show_tooltip_requested.emit(current_offer.offer_name, current_offer.description, get_global_rect())
-		# Poprawiony print
-		print("DEBUG ShopOfferItemUI: Mouse ENTERED '", current_offer.offer_name, "'. Can afford: ", _can_afford, ", Is owned: ", _is_owned)
-	else:
-		print("DEBUG ShopOfferItemUI: Mouse ENTERED (NO OFFER).")
+	if current_offer_ref != null:
+		var tooltip_title = current_offer_ref.offer_name
+		var tooltip_desc = current_offer_ref.description
+		
+		show_tooltip_requested.emit(tooltip_title, tooltip_desc, get_global_rect())
 	_update_visual_state()
 
 
 func _on_mouse_exited_item_area() -> void:
 	_is_mouse_over = false
 	hide_tooltip_requested.emit()
-	if current_offer != null:
-		# Poprawiony print
-		print("DEBUG ShopOfferItemUI: Mouse EXITED '", current_offer.offer_name, "'. Can afford: ", _can_afford, ", Is owned: ", _is_owned)
-	else:
-		print("DEBUG ShopOfferItemUI: Mouse EXITED (NO OFFER).")
 	_update_visual_state()

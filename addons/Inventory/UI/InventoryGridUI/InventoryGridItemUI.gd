@@ -100,13 +100,6 @@ func _on_mouse_entered():
 		#    zresetuj rozmiar głównego kontenera tooltipa.
 		tooltip_container.reset_size()
 
-		# Debugowanie, jeśli nadal coś jest nie tak:
-		# print("--- After process_frame and reset_size ---")
-		# print("Tooltip Container size: ", tooltip_container.size)
-		# print("RichTextLabel min size: ", tooltipText.get_minimum_size())
-		# print("VBox (in tooltip) min size: ", $Tooltip/Container/MarginContainer/VBoxContainer.get_minimum_size())
-
-
 func _on_mouse_exited():
 	if is_instance_valid(tooltip):
 		tooltip.hide()

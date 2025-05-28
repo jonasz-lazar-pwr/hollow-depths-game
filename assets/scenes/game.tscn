@@ -793,6 +793,10 @@ offset_bottom = 66.0
 theme_override_font_sizes/font_size = 34
 text = "❤️ 100/100"
 
+[node name="CoinsLabel" type="Label" parent="UI"]
+offset_right = 40.0
+offset_bottom = 23.0
+
 [node name="InventoryButton" type="Button" parent="UI"]
 anchors_preset = 1
 anchor_left = 1.0

@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://dro778sicup7b"]
+
+[ext_resource type="Texture2D" uid="uid://lg1fw7bpjkf" path="res://assets/sprites/icons/pickaxe.png" id="1_3eruf"]
+
+[resource]
+atlas = ExtResource("1_3eruf")
+region = Rect2(2, 3, 320, 348)

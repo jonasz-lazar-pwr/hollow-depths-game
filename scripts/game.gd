@@ -37,7 +37,8 @@ func save_game():
 		"position_x": player.global_position.x,
 		"position_y": player.global_position.y,
 		"current_hp": player.current_hp,
-		"inventory": player.inventory # Store the actual Inventory resource
+		"inventory": player.inventory, # Store the actual Inventory resource
+		"coins": player.coins # <<< DODAJ ZAPIS MONET
 	}
 
 	# --- Prepare World Data (Dictionary - stays the same) ---
@@ -105,7 +106,11 @@ func load_game():
 		current_purchased_upgrades = loaded_resource.purchased_upgrades.duplicate() # <-- DODAJ TO
 	else:
 		current_purchased_upgrades = [] # Zainicjuj jako pustą, jeśli brak w save
-
+	if loaded_resource.has("player_data"):
+		var pd = loaded_resource.player_data
+		if pd.has("coins"):
+			player.coins = pd.get("coins", 0) # <<< DODAJ WCZYTYWANIE MONET
+			player.coins_updated.emit(player.coins)
 	print("Game loaded successfully.")
 	print("Loaded upgrades: ", current_purchased_upgrades) # Debug
 	get_tree().paused = false
@@ -196,6 +201,21 @@ func load_game():
 	get_tree().paused = false
 	return true
 
+# --- Nowa funkcja do dodawania monet (wywoływana przez ShopUI) ---
+func add_player_coins(amount: int):
+	if is_instance_valid(player):
+		player.add_coins(amount)
+	else:
+		printerr("Game: Cannot add coins, player instance is invalid.")
+		
+# --- Nowa funkcja do usuwania monet (wywoływana przez ShopUI) ---
+func remove_player_coins(amount: int) -> bool:
+	if is_instance_valid(player):
+		return player.remove_coins(amount)
+	else:
+		printerr("Game: Cannot remove coins, player instance is invalid.")
+		return false
+		
 func open_shop_ui() -> void:
 	print("DEBUG: open_shop_ui() called.") # Czy funkcja jest w ogóle wywoływana?
 
@@ -237,15 +257,11 @@ func open_shop_ui() -> void:
 		print("DEBUG: shop_ui_instance is already valid.")
 
 
-	# Przekaż potrzebne dane do UI sklepu
-	if shop_ui_instance.has_method("setup_shop"):
-		print("DEBUG: Calling setup_shop on shop_ui_instance.")
-		shop_ui_instance.setup_shop(player.inventory, self)
+	if shop_ui_instance.has_method("set_initial_data_for_shop"):
+		print("DEBUG: Calling set_initial_data_for_shop on shop_ui_instance.")
+		shop_ui_instance.set_initial_data_for_shop(player.inventory, self)
 	else:
-		printerr("ShopUI instance (shop_ui_instance) does not have a 'setup_shop' method!")
-		# Możesz chcieć nie pokazywać UI w takim przypadku, albo pokazać błąd w UI
-		# shop_ui_instance.hide()
-		# return
+		printerr("ShopUI instance (shop_ui_instance) does not have a 'set_initial_data_for_shop' method!")
 
 	shop_ui_instance.show()
 	print("DEBUG: shop_ui_instance.show() called. Is it visible on screen?")

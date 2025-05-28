@@ -43,7 +43,7 @@ vertical_alignment = 1
 layer = 20
 
 [node name="Container" type="PanelContainer" parent="Tooltip"]
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(187, 0)
 offset_right = 200.0
 offset_bottom = 63.0
 size_flags_vertical = 4

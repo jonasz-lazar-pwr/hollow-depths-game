@@ -3,6 +3,7 @@ class_name InventoryPopupTooltip extends PanelContainer
 @export var offset := Vector2(8, 8)
 
 func _process(delta):
+	print("Container size in tooltip script: ", size)
 	var vp_size := get_viewport_rect().size
 	var mouse := get_global_mouse_position()
 	

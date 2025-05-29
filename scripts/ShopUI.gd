@@ -129,9 +129,9 @@ func populate_offers() -> void:
 		
 		var dynamic_sell_offer = ShopOffer.new() 
 		dynamic_sell_offer.offer_name = "Sell All Ammolite"
-		dynamic_sell_offer.description = "Sell %d Ammolite for %d Coins." % [ammolites_owned, ammolites_owned * 5]
+		dynamic_sell_offer.description = "Sell %d Ammolite for %d Coins." % [ammolites_owned, ammolites_owned * 5] # Użyj ammolites_owned
 		dynamic_sell_offer.cost_item = ammolite_item_type_ref
-		dynamic_sell_offer.cost_amount = ammolites_owned
+		dynamic_sell_offer.cost_amount = ammolites_owned # Kluczowe: koszt to ilość posiadanych
 		dynamic_sell_offer.unique_id = "SELL_ALL_AMMOLITE_UNIQUE_ID"
 		dynamic_sell_offer.reward_type = ShopOffer.RewardType.OTHER
 
@@ -140,30 +140,28 @@ func populate_offers() -> void:
 			printerr("ShopUI populate_offers ERROR: Failed to instantiate offer_item_scene_ref for SELL mode.")
 			return
 		
+		# === KLUCZOWA POPRAWKA: NAJPIERW DODAJ DO SCENY I MAPY ===
 		offers_container.add_child(offer_item_ui)
 		_ui_to_offer_map[offer_item_ui] = dynamic_sell_offer
-		print("  populate_offers (SELL): Added sell offer UI. Instance: ", offer_item_ui, " Mapped to offer: ", dynamic_sell_offer.offer_name)
+		print("  populate_offers (SELL): ADDED sell offer UI to container. Instance: ", offer_item_ui, " Mapped to offer: ", dynamic_sell_offer.offer_name)
+		# ========================================================
 		
 		if offer_item_ui.has_method("setup_offer"):
-			var can_actually_sell = ammolites_owned > 0
+			var can_actually_sell = ammolites_owned > 0 
 			offer_item_ui.setup_offer(dynamic_sell_offer, player_inventory, false, can_actually_sell, int(current_shop_mode))
 			
-			# --- KLUCZOWA ZMIANA TUTAJ ---
-			# Podłączamy sygnał `purchase_button_pressed` (który jest teraz bez argumentów w ShopOfferItemUI.gd)
-			# do funkcji `_on_any_offer_item_pressed`, przekazując instancję `offer_item_ui` przez .bind()
-			if offer_item_ui.has_signal("purchase_button_pressed"): # Sprawdź, czy ShopOfferItemUI.gd ma ten sygnał
-				if not offer_item_ui.purchase_button_pressed.is_connected(_on_any_offer_item_pressed):
-					var err_connect = offer_item_ui.purchase_button_pressed.connect(Callable(self, "_on_any_offer_item_pressed").bind(offer_item_ui))
+			if offer_item_ui.has_signal("purchase_requested"):
+				if not offer_item_ui.purchase_requested.is_connected(_on_any_offer_item_pressed):
+					var err_connect = offer_item_ui.purchase_requested.connect(_on_any_offer_item_pressed) 
 					if err_connect != OK:
-						printerr("ShopUI (SELL): Failed to connect 'purchase_button_pressed'. Error: ", err_connect, " for offer: ", dynamic_sell_offer.offer_name)
+						printerr("ShopUI (SELL): Failed to connect 'purchase_requested'. Error: ", err_connect, " for offer: ", dynamic_sell_offer.offer_name)
 					else:
-						print("ShopUI (SELL): Connected 'purchase_button_pressed' for '", dynamic_sell_offer.offer_name, "' to _on_any_offer_item_pressed.")
+						print("ShopUI (SELL): Connected 'purchase_requested' for '", dynamic_sell_offer.offer_name, "' to _on_any_offer_item_pressed.")
 			else:
-				# Ten błąd by się pojawił, gdybyś nie zaktualizował ShopOfferItemUI.gd do emitowania 'purchase_button_pressed'
-				printerr("ShopUI (SELL): offer_item_ui (",offer_item_ui,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd script and signal definition.")
+				printerr("ShopUI (SELL): offer_item_ui (",offer_item_ui,") does NOT have signal 'purchase_requested'. Check ShopOfferItemUI.gd script and signal definition.")
 			_connect_tooltip_signals(offer_item_ui, dynamic_sell_offer)
 		else:
-			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui, ") for selling does NOT have setup_offer method!")
+			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui, ") for selling does NOT have setup_offer method! UI was added but might not be fully configured.")
 
 	elif current_shop_mode == ShopMode.BUY:
 		var display_offer_for_pickaxe = ShopOffer.new()
@@ -183,49 +181,51 @@ func populate_offers() -> void:
 		if game_manager.has_method("has_upgrade"):
 			is_already_purchased = game_manager.has_upgrade(display_offer_for_pickaxe.unique_id)
 		
-		var can_player_afford = false
+		var can_player_afford_buy = false 
 		if game_manager.has_method("get_player_coins"):
-			if game_manager.get_player_coins() >= buy_cost_in_coins:
-				can_player_afford = true
+			if game_manager.get_player_coins() >= buy_cost_in_coins: 
+				can_player_afford_buy = true
 
 		var offer_item_ui_buy = offer_item_scene_ref.instantiate()
 		if not is_instance_valid(offer_item_ui_buy):
 			printerr("ShopUI populate_offers ERROR: Failed to instantiate offer_item_scene_ref for BUY mode.")
 			return
 
+		# === KLUCZOWA POPRAWKA: NAJPIERW DODAJ DO SCENY I MAPY ===
 		offers_container.add_child(offer_item_ui_buy)
 		_ui_to_offer_map[offer_item_ui_buy] = display_offer_for_pickaxe
-		print("  populate_offers (BUY): Added buy offer UI. Instance: ", offer_item_ui_buy, " Mapped to offer: ", display_offer_for_pickaxe.offer_name)
+		print("  populate_offers (BUY): ADDED buy offer UI to container. Instance: ", offer_item_ui_buy, " Mapped to offer: ", display_offer_for_pickaxe.offer_name)
+		# ========================================================
 
 		if offer_item_ui_buy.has_method("setup_offer"):
-			offer_item_ui_buy.setup_offer(display_offer_for_pickaxe, player_inventory, is_already_purchased, can_player_afford, int(current_shop_mode))
+			offer_item_ui_buy.setup_offer(display_offer_for_pickaxe, player_inventory, is_already_purchased, can_player_afford_buy, int(current_shop_mode))
 			
-			# --- KLUCZOWA ZMIANA TUTAJ ---
-			if offer_item_ui_buy.has_signal("purchase_button_pressed"):
-				if not offer_item_ui_buy.purchase_button_pressed.is_connected(_on_any_offer_item_pressed):
-					var err_connect_buy = offer_item_ui_buy.purchase_button_pressed.connect(Callable(self, "_on_any_offer_item_pressed").bind(offer_item_ui_buy))
+			if offer_item_ui_buy.has_signal("purchase_requested"):
+				if not offer_item_ui_buy.purchase_requested.is_connected(_on_any_offer_item_pressed):
+					var err_connect_buy = offer_item_ui_buy.purchase_requested.connect(_on_any_offer_item_pressed)
 					if err_connect_buy != OK:
-						printerr("ShopUI (BUY): Failed to connect 'purchase_button_pressed'. Error: ", err_connect_buy, " for offer: ", display_offer_for_pickaxe.offer_name)
+						printerr("ShopUI (BUY): Failed to connect 'purchase_requested'. Error: ", err_connect_buy, " for offer: ", display_offer_for_pickaxe.offer_name)
 					else:
-						print("ShopUI (BUY): Connected 'purchase_button_pressed' for '", display_offer_for_pickaxe.offer_name, "' to _on_any_offer_item_pressed.")
+						print("ShopUI (BUY): Connected 'purchase_requested' for '", display_offer_for_pickaxe.offer_name, "' to _on_any_offer_item_pressed.")
 			else:
-				printerr("ShopUI (BUY): offer_item_ui_buy (",offer_item_ui_buy,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd script and signal definition.")
+				printerr("ShopUI (BUY): offer_item_ui_buy (",offer_item_ui_buy,") does NOT have signal 'purchase_requested'. Check ShopOfferItemUI.gd script and signal definition.")
 
 			_connect_tooltip_signals(offer_item_ui_buy, display_offer_for_pickaxe)
 		else:
-			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui_buy, ") for buying does NOT have setup_offer method!")
+			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui_buy, ") for buying does NOT have setup_offer method! UI was added but might not be fully configured.")
 	
 	if is_instance_valid(offers_scroll):
 		offers_scroll.scroll_vertical = 0
 
-func _on_any_offer_item_pressed(item_ui_instance: Control) -> void:
-	if not _ui_to_offer_map.has(item_ui_instance):
-		printerr("ShopUI _on_any_offer_item_pressed ERROR: Clicked item UI (", item_ui_instance, ") not found in map.")
-		return
+func _on_any_offer_item_pressed(offer_to_purchase: ShopOffer) -> void: 
+	# Usunięto:
+	# if not _ui_to_offer_map.has(item_ui_instance):
+	#     printerr("ShopUI _on_any_offer_item_pressed ERROR: Clicked item UI (", item_ui_instance, ") not found in map.")
+	#     return
+	# var offer_to_purchase = _ui_to_offer_map[item_ui_instance] as ShopOffer
 	
-	var offer_to_purchase = _ui_to_offer_map[item_ui_instance] as ShopOffer
 	if not is_instance_valid(offer_to_purchase):
-		printerr("ShopUI _on_any_offer_item_pressed ERROR: Offer from map is invalid for UI: ", item_ui_instance)
+		printerr("ShopUI _on_any_offer_item_pressed ERROR: Received invalid offer instance.")
 		return
 
 	print("ShopUI: _on_any_offer_item_pressed CALLED for offer: '", offer_to_purchase.offer_name, "' with ID: '", offer_to_purchase.unique_id, "'")

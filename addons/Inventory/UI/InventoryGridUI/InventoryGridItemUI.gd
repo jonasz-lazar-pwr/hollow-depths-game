@@ -96,7 +96,7 @@ func _on_mouse_entered():
 		await get_tree().process_frame 
 		# === KONIEC KLUCZOWEJ ZMIANY ===
 
-		# 4. Teraz, gdy kontrolki wewnętrzne miały szansę się przeliczyć,
+		# 4. Teraz, gdy kontrolki wewnętrzne miały szansę się przeliczyć,			
 		#    zresetuj rozmiar głównego kontenera tooltipa.
 		tooltip_container.reset_size()
 

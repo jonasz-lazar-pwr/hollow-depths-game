@@ -820,10 +820,13 @@ visible = false
 z_index = 100
 offset_right = 40.0
 offset_bottom = 58.0
+size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="TooltipMargin" type="MarginContainer" parent="UI/GlobalTooltip"]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_constants/margin_left = 7
 theme_override_constants/margin_top = 7
 theme_override_constants/margin_right = 7
@@ -831,13 +834,18 @@ theme_override_constants/margin_bottom = 7
 
 [node name="TooltipVBox" type="VBoxContainer" parent="UI/GlobalTooltip/TooltipMargin"]
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="TooltipTitle" type="Label" parent="UI/GlobalTooltip/TooltipMargin/TooltipVBox"]
 layout_mode = 2
 
 [node name="TooltipDescription" type="Label" parent="UI/GlobalTooltip/TooltipMargin/TooltipVBox"]
+custom_minimum_size = Vector2(10, 20)
 layout_mode = 2
+size_flags_stretch_ratio = 2.75
+text = " "
 label_settings = SubResource("LabelSettings_fc420")
+autowrap_mode = 2
 
 [node name="GameOverLayer" type="CanvasLayer" parent="."]
 process_mode = 3

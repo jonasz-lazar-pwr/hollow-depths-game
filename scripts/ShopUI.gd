@@ -11,22 +11,18 @@ var current_shop_mode: ShopMode = ShopMode.SELL
 @onready var switch_mode_button: Button = $Background/MarginContainer/VBoxContainer/SwitchModeButton 
 @onready var title_label: Label = $Background/MarginContainer/VBoxContainer/TitleLabel
 
-# Zmienne, które będą ustawione przez game_manager
 var player_inventory: Inventory = null
-var game_manager: Node = null # Będzie to referencja do game.gd
+var game_manager: Node = null
 
-# Zmienne pomocnicze do inicjalizacji
 var _player_inventory_ref_for_setup: Inventory = null
 var _game_manager_ref_for_setup: Node = null
-var _is_ready_for_data_setup: bool = false # Flaga wskazująca, czy dane zostały przekazane
+var _is_ready_for_data_setup: bool = false
 
-# Zasoby ofert i ikon
 var ammolite_item_type_ref: InventoryItemType = preload("res://assets/inventory/ammolite.tres")
 var pickaxe_upgrade_offer_template_ref: ShopOffer = preload("res://assets/shop_offers/unlock_digging1.tres") # unique_id to "unique_offer_id"
-var pickaxe_icon_texture_ref: Texture2D = preload("res://assets/sprites/icons/pickaxe_icon.tres") # Upewnij się, że ta ścieżka jest poprawna
-var offer_item_scene_ref: PackedScene = preload("res://assets/scenes/ShopOfferItemUI.tscn") # Upewnij się, że ta ścieżka jest poprawna
+var pickaxe_icon_texture_ref: Texture2D = preload("res://assets/sprites/icons/pickaxe_icon.tres")
+var offer_item_scene_ref: PackedScene = preload("res://assets/scenes/ShopOfferItemUI.tscn")
 
-# Słownik do mapowania instancji UI na obiekty ShopOffer
 var _ui_to_offer_map: Dictionary = {}
 
 func _ready() -> void:
@@ -49,7 +45,7 @@ func _ready() -> void:
 	else:
 		printerr("ShopUI _ready ERROR: SwitchModeButton not found or invalid! Check path in @onready var.")
 	
-	hide() # Ukryj na starcie
+	hide() 
 
 	if _is_ready_for_data_setup:
 		print("ShopUI _ready: Data was set before _ready. Performing setup now.")
@@ -66,12 +62,12 @@ func set_initial_data_for_shop(p_inventory: Inventory, p_game_manager: Node) -> 
 			print("ShopUI set_initial_data_for_shop: Node is in tree and @onready vars seem valid. Performing setup.")
 			_perform_actual_shop_setup()
 		else:
-			printerr("ShopUI set_initial_data_for_shop ERROR: Node is in tree, BUT @onready vars are NOT valid yet. This is unexpected if _ready already ran.")
+			printerr("ShopUI set_initial_data_for_shop ERROR: Node is in tree, BUT @onready vars are NOT valid yet.")
 	else:
 		print("ShopUI set_initial_data_for_shop: Node not in tree yet. Setup will be triggered by _ready.")
 
 func _perform_actual_shop_setup():
-	print("ShopUI _perform_actual_shop_setup CALLED. Verifying references before proceeding:")
+	print("ShopUI _perform_actual_shop_setup CALLED. Verifying references:")
 	print("  _perform_actual_shop_setup - _player_inventory_ref_for_setup: ", _player_inventory_ref_for_setup)
 	print("  _perform_actual_shop_setup - _game_manager_ref_for_setup: ", _game_manager_ref_for_setup)
 	print("  _perform_actual_shop_setup - CloseButton: ", close_button)
@@ -79,22 +75,22 @@ func _perform_actual_shop_setup():
 	print("  _perform_actual_shop_setup - TitleLabel: ", title_label)
 
 	if not is_instance_valid(_player_inventory_ref_for_setup) or not is_instance_valid(_game_manager_ref_for_setup):
-		printerr("ShopUI _perform_actual_shop_setup ERROR: Missing player inventory or game manager reference! Cannot proceed.")
+		printerr("ShopUI _perform_actual_shop_setup ERROR: Missing refs! Cannot proceed.")
 		return
 
 	player_inventory = _player_inventory_ref_for_setup
 	game_manager = _game_manager_ref_for_setup
 	
-	_update_ui_for_mode()
-	populate_offers()
+	_update_ui_for_mode() 
+	populate_offers()     
 
 func _on_switch_mode_button_pressed():
 	if current_shop_mode == ShopMode.SELL:
 		current_shop_mode = ShopMode.BUY
 	else:
 		current_shop_mode = ShopMode.SELL
-	_update_ui_for_mode()
-	populate_offers()
+	_update_ui_for_mode() 
+	populate_offers()     
 
 func _update_ui_for_mode():
 	print("ShopUI _update_ui_for_mode CALLED. Checking @onready vars before use:")
@@ -102,7 +98,7 @@ func _update_ui_for_mode():
 	print("  _update_ui_for_mode - SwitchModeButton: ", switch_mode_button)
 
 	if not is_instance_valid(title_label) or not is_instance_valid(switch_mode_button):
-		printerr("ShopUI _update_ui_for_mode ERROR: TitleLabel or SwitchModeButton is not valid. Cannot update UI texts.")
+		printerr("ShopUI _update_ui_for_mode ERROR: TitleLabel or SwitchModeButton is not valid.")
 		return
 
 	if current_shop_mode == ShopMode.SELL:
@@ -122,7 +118,7 @@ func populate_offers() -> void:
 
 	for child in offers_container.get_children():
 		child.queue_free()
-	_ui_to_offer_map.clear() # Wyczyść mapowanie przed ponownym zapełnieniem
+	_ui_to_offer_map.clear()
 
 	if not player_inventory or not game_manager:
 		printerr("ShopUI populate_offers ERROR: Inventory or GameManager not set up.")
@@ -152,15 +148,19 @@ func populate_offers() -> void:
 			var can_actually_sell = ammolites_owned > 0
 			offer_item_ui.setup_offer(dynamic_sell_offer, player_inventory, false, can_actually_sell, int(current_shop_mode))
 			
-			if offer_item_ui.has_signal("purchase_button_pressed"):
-				if not offer_item_ui.purchase_button_pressed.is_connected(_on_any_offer_item_pressed): # Łączymy z nową funkcją
+			# --- KLUCZOWA ZMIANA TUTAJ ---
+			# Podłączamy sygnał `purchase_button_pressed` (który jest teraz bez argumentów w ShopOfferItemUI.gd)
+			# do funkcji `_on_any_offer_item_pressed`, przekazując instancję `offer_item_ui` przez .bind()
+			if offer_item_ui.has_signal("purchase_button_pressed"): # Sprawdź, czy ShopOfferItemUI.gd ma ten sygnał
+				if not offer_item_ui.purchase_button_pressed.is_connected(_on_any_offer_item_pressed):
 					var err_connect = offer_item_ui.purchase_button_pressed.connect(Callable(self, "_on_any_offer_item_pressed").bind(offer_item_ui))
 					if err_connect != OK:
-						printerr("ShopUI (SELL): Failed to connect 'purchase_button_pressed'. Error: ", err_connect)
+						printerr("ShopUI (SELL): Failed to connect 'purchase_button_pressed'. Error: ", err_connect, " for offer: ", dynamic_sell_offer.offer_name)
 					else:
 						print("ShopUI (SELL): Connected 'purchase_button_pressed' for '", dynamic_sell_offer.offer_name, "' to _on_any_offer_item_pressed.")
 			else:
-				printerr("ShopUI (SELL): offer_item_ui (",offer_item_ui,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd")
+				# Ten błąd by się pojawił, gdybyś nie zaktualizował ShopOfferItemUI.gd do emitowania 'purchase_button_pressed'
+				printerr("ShopUI (SELL): offer_item_ui (",offer_item_ui,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd script and signal definition.")
 			_connect_tooltip_signals(offer_item_ui, dynamic_sell_offer)
 		else:
 			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui, ") for selling does NOT have setup_offer method!")
@@ -200,15 +200,17 @@ func populate_offers() -> void:
 		if offer_item_ui_buy.has_method("setup_offer"):
 			offer_item_ui_buy.setup_offer(display_offer_for_pickaxe, player_inventory, is_already_purchased, can_player_afford, int(current_shop_mode))
 			
+			# --- KLUCZOWA ZMIANA TUTAJ ---
 			if offer_item_ui_buy.has_signal("purchase_button_pressed"):
-				if not offer_item_ui_buy.purchase_button_pressed.is_connected(_on_any_offer_item_pressed): # Łączymy z nową funkcją
+				if not offer_item_ui_buy.purchase_button_pressed.is_connected(_on_any_offer_item_pressed):
 					var err_connect_buy = offer_item_ui_buy.purchase_button_pressed.connect(Callable(self, "_on_any_offer_item_pressed").bind(offer_item_ui_buy))
 					if err_connect_buy != OK:
-						printerr("ShopUI (BUY): Failed to connect 'purchase_button_pressed'. Error: ", err_connect_buy)
+						printerr("ShopUI (BUY): Failed to connect 'purchase_button_pressed'. Error: ", err_connect_buy, " for offer: ", display_offer_for_pickaxe.offer_name)
 					else:
 						print("ShopUI (BUY): Connected 'purchase_button_pressed' for '", display_offer_for_pickaxe.offer_name, "' to _on_any_offer_item_pressed.")
 			else:
-				printerr("ShopUI (BUY): offer_item_ui_buy (",offer_item_ui_buy,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd")
+				printerr("ShopUI (BUY): offer_item_ui_buy (",offer_item_ui_buy,") does NOT have signal 'purchase_button_pressed'. Check ShopOfferItemUI.gd script and signal definition.")
+
 			_connect_tooltip_signals(offer_item_ui_buy, display_offer_for_pickaxe)
 		else:
 			printerr("ShopUI populate_offers ERROR: Instantiated ShopOfferItemUI (", offer_item_ui_buy, ") for buying does NOT have setup_offer method!")
@@ -259,7 +261,7 @@ func _on_any_offer_item_pressed(item_ui_instance: Control) -> void:
 	
 	elif current_shop_mode == ShopMode.BUY:
 		print("  _on_any_offer_item_pressed: Current mode is BUY.")
-		if offer_to_purchase.unique_id == pickaxe_upgrade_offer_template_ref.unique_id: # "unique_offer_id"
+		if offer_to_purchase.unique_id == pickaxe_upgrade_offer_template_ref.unique_id:
 			print("  _on_any_offer_item_pressed: Matched Offer ID for pickaxe upgrade.")
 			if not (game_manager.has_method("has_upgrade") and \
 					game_manager.has_method("grant_upgrade") and \
@@ -308,11 +310,18 @@ func close_ui() -> void:
 		hide(); get_tree().paused = false
 		
 func _on_item_show_tooltip_requested(text_title: String, text_description: String, item_global_rect: Rect2) -> void:
-	if is_instance_valid(game_manager) and game_manager.has_method("display_global_tooltip"):
-		game_manager.display_global_tooltip(text_title, text_description, item_global_rect)
+	print("DEBUG ShopUI: _on_item_show_tooltip_requested RECEIVED. Title: ", text_title)
+	# POPRAWKA TUTAJ: Użyj nowej nazwy funkcji z game.gd
+	if is_instance_valid(game_manager) and game_manager.has_method("show_and_update_global_tooltip_content"):
+		game_manager.show_and_update_global_tooltip_content(text_title, text_description, item_global_rect)
 	else:
-		printerr("ShopUI _on_item_show_tooltip_requested ERROR: Cannot show tooltip, game_manager invalid or missing display_global_tooltip method.")
-
+		# Ten komunikat błędu jest teraz bardziej precyzyjny
+		if not is_instance_valid(game_manager):
+			printerr("ShopUI ERROR: _on_item_show_tooltip_requested - game_manager is null or invalid.")
+		elif not game_manager.has_method("show_and_update_global_tooltip_content"):
+			printerr("ShopUI ERROR: _on_item_show_tooltip_requested - game_manager does NOT have method 'show_and_update_global_tooltip_content'.")
+		# Oryginalny, ogólny błąd można zostawić jako fallback lub usunąć
+		# printerr("ShopUI: Cannot show tooltip, game_manager invalid or missing display_global_tooltip method.") # Można usunąć
 func _on_item_hide_tooltip_requested() -> void:
 	if is_instance_valid(game_manager) and game_manager.has_method("hide_global_tooltip"):
 		game_manager.hide_global_tooltip()

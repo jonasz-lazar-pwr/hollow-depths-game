@@ -1,25 +1,24 @@
 # game.gd
 extends Node2D
 
-@onready var player = $WorldContainer/Player # Ścieżka do gracza
+@onready var player = $WorldContainer/Player
 @onready var game_over_layer = $GameOverLayer
-@onready var pause_menu = $PauseMenuLayer/PauseMenu # Upewnij się, że ścieżka jest poprawna!
-# lub: @onready var pause_menu_layer = $PauseMenuLayer
-#@onready var world_container = $WorldContainer
-@onready var global_tooltip_panel: PanelContainer = $UI/GlobalTooltip # Upewnij się, że ścieżka jest poprawna
+@onready var pause_menu = $PauseMenuLayer/PauseMenu
+@onready var global_tooltip_panel: PanelContainer = $UI/GlobalTooltip
 @onready var global_tooltip_title: Label = $UI/GlobalTooltip/TooltipMargin/TooltipVBox/TooltipTitle
 @onready var global_tooltip_description: Label = $UI/GlobalTooltip/TooltipMargin/TooltipVBox/TooltipDescription
-# --- Zmienne do podświetlania ---
-@export var highlight_source_id: int = 3 # <<< ZMIEŃ na ID źródła twojego kafelka podświetlenia
-@export var highlight_atlas_coords: Vector2i = Vector2i(0, 7) # <<< ZMIEŃ na koordynaty twojego kafelka podświetlenia
-@export var highlight_modulate: Color = Color(1.0, 1.0, 1.0, 1.0) # Kolor/przezroczystość podświetlenia
+@onready var global_tooltip_vbox: VBoxContainer = $UI/GlobalTooltip/TooltipMargin/TooltipVBox
+@onready var global_tooltip_margin_container: MarginContainer = $UI/GlobalTooltip/TooltipMargin # Dodaj, jeśli jeszcze nie mas
+@export var highlight_source_id: int = 3
+@export var highlight_atlas_coords: Vector2i = Vector2i(0, 7)
+@export var highlight_modulate: Color = Color(1.0, 1.0, 1.0, 1.0)
 
 var highlighted_dig_cell: Vector2i = Vector2i(-1, -1) # Przechowuje koordynaty podświetlanej komórki
 
 @onready var ground_tilemap = $WorldContainer/TileMap/Ground # Upewnij się, że ścieżka jest poprawna
 
 const SAVE_PATH = "res://savegame.res"
-
+var current_tooltip_instance: PanelContainer = null 
 const SaveGameDataResource = preload("res://scripts/save_game_data.gd")
 var current_purchased_upgrades: Array[String] = []
 func save_game():
@@ -267,6 +266,51 @@ func open_shop_ui() -> void:
 	print("DEBUG: shop_ui_instance.show() called. Is it visible on screen?")
 	get_tree().paused = true
 	print("Game paused. Shop UI should be open.")
+func _initialize_new_game_state():
+	current_purchased_upgrades = [] # Resetuj zakupione ulepszenia dla nowej gry
+	if is_instance_valid(player):
+		# Zresetuj pozycję gracza, HP itp. dla nowej gry, jeśli jest taka potrzeba
+		# player.global_position = POCZATKOWA_POZYCJA_GRACZA
+		# player.current_hp = player.max_hp
+		# player.inventory.take_all_items() # Wyczyść ekwipunek
+
+		# Upewnij się, że sygnały są podłączone
+		if player.has_signal("player_died"):
+			if not player.player_died.is_connected(_on_player_died):
+				player.player_died.connect(_on_player_died)
+		else:
+			printerr("Player node does not have 'player_died' signal!")
+		
+		var ui_node = $UI # Pobierz węzeł UI
+		if ui_node and ui_node.has_method("_on_player_health_updated"): # Sprawdź czy UI i funkcja istnieją
+			if not player.health_updated.is_connected(ui_node._on_player_health_updated):
+				var err_health = player.health_updated.connect(ui_node._on_player_health_updated)
+				if err_health != OK:
+					printerr("GAME ERROR: Failed to connect player.health_updated to ui._on_player_health_updated. Error: ", err_health)
+				else:
+					print("GAME INFO: Connected player.health_updated to ui._on_player_health_updated.")
+		else:
+			if not ui_node: printerr("GAME ERROR: UI node ($UI) not found for health connection!")
+			elif not ui_node.has_method("_on_player_health_updated"): printerr("GAME ERROR: UI node script does not have _on_player_health_updated method!")
+		
+		# Podłączanie sygnału monet, jeśli istnieje w UI
+		if ui_node and ui_node.has_method("_on_player_coins_updated"):
+			if not player.coins_updated.is_connected(ui_node._on_player_coins_updated):
+				var err_coins = player.coins_updated.connect(ui_node._on_player_coins_updated)
+				if err_coins != OK:
+					printerr("GAME ERROR: Failed to connect player.coins_updated to ui._on_player_coins_updated. Error: ", err_coins)
+				else:
+					print("GAME INFO: Connected player.coins_updated to ui._on_player_coins_updated.")
+		
+		_reconnect_inventory_signals() # Użyj pomocnika do sygnałów ekwipunku
+
+		# Wyemituj początkowe wartości
+		player.coins_updated.emit(player.coins)
+		player.health_updated.emit(player.current_hp, player.max_hp)
+		player.inventory_updated.emit(player.inventory)
+
+	else:
+		printerr("Game script: Cannot initialize new game state, Player node is invalid or not found at path $WorldContainer/Player!")
 
 func close_shop_ui() -> void:
 	print("DEBUG game.gd: close_shop_ui() CALLED.")
@@ -310,6 +354,14 @@ func _ready():
 		global_tooltip_panel.visible = false
 	else:
 		printerr("Game: GlobalTooltipPanel not found!")
+
+	# Explicitly set autowrap mode for the description label
+	if is_instance_valid(global_tooltip_description):
+		# Ustawmy autowrap, ale to nie jest główny problem, jak zauważyłeś
+		global_tooltip_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	else:
+		printerr("Game: global_tooltip_description Label not found!")
+
 	if FileAccess.file_exists(SAVE_PATH):
 		print("Save file found, attempting to load...")
 		if load_game():
@@ -349,64 +401,196 @@ func _ready():
 		elif not is_instance_valid(ground_tilemap.tile_set):
 			printerr("TileSet on Ground TileMap not found for ShopArea position calculation!")
 
-func display_global_tooltip(text_title: String, text_description: String, item_global_rect: Rect2) -> void:
-	if not is_instance_valid(global_tooltip_panel): return
+# game.gd
+# ... (reszta kodu game.gd bez zmian) ...
+# scripts/game.gd
 
-	global_tooltip_title.text = text_title
-	global_tooltip_description.text = text_description
-	
-	# Pozycjonowanie (przykładowe, można ulepszyć)
-	var tooltip_pos = item_global_rect.position + Vector2(item_global_rect.size.x + 10, 0) # 10px na prawo od itemu
-	
-	# Sprawdź granice ekranu (uproszczone)
-	var viewport_size = get_viewport_rect().size
-	global_tooltip_panel.global_position = tooltip_pos # Najpierw ustaw, potem pobierz rozmiar tooltipa
-	
-	# Dopiero po ustawieniu tekstu, rozmiar tooltipa może być poprawny do dalszych obliczeń
-	# Można poczekać jedną klatkę `await get_tree().process_frame` jeśli rozmiar nie jest od razu poprawny
-	var tooltip_size = global_tooltip_panel.size 
-	
-	if tooltip_pos.x + tooltip_size.x > viewport_size.x:
-		tooltip_pos.x = item_global_rect.position.x - tooltip_size.x - 10 # Na lewo od itemu
-	if tooltip_pos.y + tooltip_size.y > viewport_size.y:
-		tooltip_pos.y = viewport_size.y - tooltip_size.y - 5 # Na dole ekranu
-	if tooltip_pos.y < 0:
-		tooltip_pos.y = 5 # Na górze ekranu
+func show_and_update_global_tooltip_content(text_title: String, text_description: String, item_global_rect: Rect2) -> void:
+	if not is_instance_valid(global_tooltip_panel):
+		printerr("Game: show_and_update_global_tooltip_content - GlobalTooltipPanel is not valid.")
+		return
 
-	global_tooltip_panel.global_position = tooltip_pos
+	# 1. Ukryj panel i zresetuj minimalne rozmiary kontenerów i etykiet
+	global_tooltip_panel.visible = false
+	global_tooltip_panel.custom_minimum_size = Vector2.ZERO
+	if is_instance_valid(global_tooltip_margin_container):
+		global_tooltip_margin_container.custom_minimum_size = Vector2.ZERO
+	if is_instance_valid(global_tooltip_vbox):
+		global_tooltip_vbox.custom_minimum_size = Vector2.ZERO
+
+	# 2. Ustaw nową zawartość tekstową i autowrap dla opisu
+	if is_instance_valid(global_tooltip_title):
+		global_tooltip_title.custom_minimum_size = Vector2.ZERO
+		global_tooltip_title.text = text_title # Ustaw tekst tytułu
+	
+	if is_instance_valid(global_tooltip_description):
+		global_tooltip_description.custom_minimum_size = Vector2.ZERO
+		
+		var is_short_text = text_description.length() < 60 and not "\n" in text_description
+		if is_short_text:
+			global_tooltip_description.autowrap_mode = TextServer.AUTOWRAP_OFF
+		else:
+			global_tooltip_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		
+		global_tooltip_description.text = text_description # Ustaw tekst opisu
+
+	# Usunięto stąd wywołania update_minimum_size() i fit_child_in_rect()
+
+	# 3. Uczyń panel widocznym (ale jego rozmiar jeszcze nie jest finalny)
 	global_tooltip_panel.visible = true
 
+	# 4. Użyj call_deferred do finalnego obliczenia rozmiaru i pozycjonowania
+	#	Przekazujemy teraz także oryginalne teksty, aby mieć pewność, że używamy właściwych w logach
+	call_deferred("_finalize_tooltip_layout_and_position", text_title, text_description, item_global_rect)
+	
+	print("Tooltip content set. Title: '", text_title, "'. Deferred finalization scheduled.")
+
+
+# Zmieniona nazwa i logika funkcji wywoływanej przez call_deferred
+func _finalize_tooltip_layout_and_position(final_text_title: String, final_text_description: String, item_global_rect: Rect2) -> void:
+	if not is_instance_valid(global_tooltip_panel):
+		printerr("Game _finalize_tooltip_layout_and_position: global_tooltip_panel is not valid.")
+		return
+
+	print("--- Finalizing Tooltip Layout ---")
+	print("  Input Title: '", final_text_title, "'")
+	print("  Input Description: '", final_text_description.substr(0,50), "...'")
+
+	# 1. Upewnij się, że dzieci mają aktualne minimalne rozmiary
+	if is_instance_valid(global_tooltip_title):
+		if global_tooltip_title.text != final_text_title:
+			global_tooltip_title.text = final_text_title 
+		global_tooltip_title.update_minimum_size()
+		print("    Title Label min_size:", global_tooltip_title.get_combined_minimum_size(), " current_size:", global_tooltip_title.size)
+
+	if is_instance_valid(global_tooltip_description):
+		var expected_autowrap = TextServer.AUTOWRAP_WORD_SMART
+		if final_text_description.length() < 60 and not "\n" in final_text_description:
+			expected_autowrap = TextServer.AUTOWRAP_OFF
+		
+		if global_tooltip_description.text != final_text_description or global_tooltip_description.autowrap_mode != expected_autowrap:
+			global_tooltip_description.autowrap_mode = expected_autowrap
+			global_tooltip_description.text = final_text_description
+			
+		global_tooltip_description.update_minimum_size()
+		print("    Description Label min_size:", global_tooltip_description.get_combined_minimum_size(), " current_size:", global_tooltip_description.size, " (Autowrap: ", global_tooltip_description.autowrap_mode, ")")
+
+	if is_instance_valid(global_tooltip_vbox):
+		global_tooltip_vbox.update_minimum_size() 
+		print("  VBox min_size:", global_tooltip_vbox.get_combined_minimum_size(), " current_size:", global_tooltip_vbox.size)
+
+	if is_instance_valid(global_tooltip_margin_container):
+		global_tooltip_margin_container.update_minimum_size()
+		print("  MarginContainer min_size:", global_tooltip_margin_container.get_combined_minimum_size(), " current_size:", global_tooltip_margin_container.size)
+
+	var panel_calculated_min_size = Vector2.ZERO
+	if is_instance_valid(global_tooltip_panel):
+		global_tooltip_panel.update_minimum_size() 
+		panel_calculated_min_size = global_tooltip_panel.get_combined_minimum_size()
+		print("  PanelContainer calculated_min_size (from children):", panel_calculated_min_size)
+		
+		# Ustaw custom_minimum_size, aby dać wskazówkę systemowi layoutu
+		global_tooltip_panel.custom_minimum_size = panel_calculated_min_size
+		print("  Set PanelContainer custom_minimum_size to:", panel_calculated_min_size)
+
+	# Poczekaj na zakończenie cyklu layoutu
+	await get_tree().process_frame 
+
+	var tooltip_size: Vector2
+	if is_instance_valid(global_tooltip_panel):
+		var current_panel_size = global_tooltip_panel.size
+		# Używamy panel_calculated_min_size, bo to jest minimalny rozmiar zawartości
+		var target_content_size = panel_calculated_min_size 
+
+		var style_min_size = Vector2.ZERO
+		var panel_stylebox = global_tooltip_panel.get_theme_stylebox("panel")
+		if panel_stylebox:
+			style_min_size = panel_stylebox.get_minimum_size()
+		
+		var expected_actual_size = target_content_size + style_min_size
+		print("    StyleBox min_size:", style_min_size, " Expected Actual Size (content_min + style_min):", expected_actual_size)
+
+		if (current_panel_size - expected_actual_size).abs().length_squared() > 0.1 :
+			print("    WARN: Panel size [", current_panel_size, "] not matching expected_actual_size [", expected_actual_size, "].")
+			print("    Attempting to set size directly (LAST RESORT). Ensure Size Flags are SHRINK.")
+			global_tooltip_panel.size = expected_actual_size # <--- RĘCZNE USTAWIENIE ROZMIARU
+			# Po ręcznym ustawieniu rozmiaru, może być potrzebna kolejna klatka na ustabilizowanie
+			await get_tree().process_frame 
+			tooltip_size = global_tooltip_panel.size # Pobierz rozmiar ponownie
+		else:
+			tooltip_size = current_panel_size
+	else:
+		tooltip_size = Vector2.ZERO
+
+	print("  PanelContainer final_size for positioning:", tooltip_size)
+	# Pozycjonowanie
+	var tooltip_pos: Vector2 = item_global_rect.position + Vector2(item_global_rect.size.x + 10, 0)
+	var viewport_size: Vector2 = get_viewport_rect().size
+	
+	if tooltip_pos.x + tooltip_size.x > viewport_size.x:
+		tooltip_pos.x = item_global_rect.position.x - tooltip_size.x - 10
+	if tooltip_pos.x < 0:
+		tooltip_pos.x = 5
+		
+	if tooltip_pos.y + tooltip_size.y > viewport_size.y:
+		tooltip_pos.y = viewport_size.y - tooltip_size.y - 5
+	if tooltip_pos.y < 0:
+		tooltip_pos.y = 5
+
+	global_tooltip_panel.global_position = tooltip_pos
+	print("--- Tooltip Positioned. Final Panel Actual Size:", global_tooltip_panel.size, "---")
+func _position_and_finalize_tooltip(item_global_rect: Rect2) -> void:
+	if not is_instance_valid(global_tooltip_panel):
+		printerr("Game _position_and_finalize_tooltip: global_tooltip_panel is not valid.")
+		return
+
+	print("--- Tooltip Finalization ---")
+	if is_instance_valid(global_tooltip_title):
+		print("  Title: '", global_tooltip_title.text, "'")
+		print("    Title Label min_size:", global_tooltip_title.get_combined_minimum_size(), " size:", global_tooltip_title.size)
+	if is_instance_valid(global_tooltip_description):
+		print("  Description: '", global_tooltip_description.text.substr(0, 50), "...'") # Pokaż tylko początek długiego opisu
+		print("    Description Label min_size:", global_tooltip_description.get_combined_minimum_size(), " size:", global_tooltip_description.size)
+	if is_instance_valid(global_tooltip_vbox):
+		print("  VBox min_size:", global_tooltip_vbox.get_combined_minimum_size(), " size:", global_tooltip_vbox.size)
+	if is_instance_valid(global_tooltip_margin_container):
+		print("  MarginContainer min_size:", global_tooltip_margin_container.get_combined_minimum_size(), " size:", global_tooltip_margin_container.size)
+	
+	var tooltip_size: Vector2 = global_tooltip_panel.size 
+	print("  PanelContainer final_size:", tooltip_size)
+	
+	if tooltip_size.y > 300 and global_tooltip_description.text.length() < 70: # Bardziej rygorystyczny warunek
+		print("  Tooltip WARN: Panel.size (", tooltip_size, ") still seems too large for short content.")
+
+	var tooltip_pos: Vector2 = item_global_rect.position + Vector2(item_global_rect.size.x + 10, 0)
+	var viewport_size: Vector2 = get_viewport_rect().size
+	
+	if tooltip_pos.x + tooltip_size.x > viewport_size.x:
+		tooltip_pos.x = item_global_rect.position.x - tooltip_size.x - 10
+	if tooltip_pos.x < 0:
+		tooltip_pos.x = 5
+		
+	if tooltip_pos.y + tooltip_size.y > viewport_size.y:
+		tooltip_pos.y = viewport_size.y - tooltip_size.y - 5
+	if tooltip_pos.y < 0:
+		tooltip_pos.y = 5
+
+	global_tooltip_panel.global_position = tooltip_pos
+	print("--- Tooltip Positioned ---")
+	
 func hide_global_tooltip() -> void:
 	if is_instance_valid(global_tooltip_panel):
 		global_tooltip_panel.visible = false
-		
-# Helper to setup connections for a new game or failed load
-func _initialize_new_game_state():
-	current_purchased_upgrades = []
-	if player:
-		if player.has_signal("player_died"):
-			if not player.player_died.is_connected(_on_player_died):
-				player.player_died.connect(_on_player_died)
-		else:
-			printerr("Player node does not have 'player_died' signal!")
-		
-		var ui_node = $UI # Pobierz węzeł UI
-		if ui_node and ui_node.has_method("_on_player_health_updated"): # Sprawdź czy UI i funkcja istnieją
-			if not player.health_updated.is_connected(ui_node._on_player_health_updated):
-				# Połącz sygnał 'health_updated' z gracza z funkcją '_on_player_health_updated' w UI
-				var err = player.health_updated.connect(ui_node._on_player_health_updated)
-				if err != OK:
-					printerr("GAME ERROR: Failed to connect player.health_updated to ui._on_player_health_updated. Error: ", err)
-				else:
-					print("GAME INFO: Connected player.health_updated to ui._on_player_health_updated.") # Potwierdzenie w konsoli
-		else:
-			# Komunikaty błędów, jeśli coś poszło nie tak
-			if not ui_node: printerr("GAME ERROR: UI node ($UI) not found for health connection!")
-			elif not ui_node.has_method("_on_player_health_updated"): printerr("GAME ERROR: UI node script does not have _on_player_health_updated method!")
-		
-		_reconnect_inventory_signals() # Use the helper
-	else:
-		printerr("Game script cannot find Player node at path $WorldContainer/Player!")
+		global_tooltip_panel.custom_minimum_size = Vector2.ZERO
+		if is_instance_valid(global_tooltip_margin_container):
+			global_tooltip_margin_container.custom_minimum_size = Vector2.ZERO
+		if is_instance_valid(global_tooltip_vbox):
+			global_tooltip_vbox.custom_minimum_size = Vector2.ZERO
+		if is_instance_valid(global_tooltip_title): # Dodaj to
+			global_tooltip_title.custom_minimum_size = Vector2.ZERO
+		if is_instance_valid(global_tooltip_description): # Dodaj to
+			global_tooltip_description.custom_minimum_size = Vector2.ZERO
+		print("Tooltip hidden and ALL container/label sizes reset.")
 
 func _on_player_died():
 	print("Game Over sequence started.")

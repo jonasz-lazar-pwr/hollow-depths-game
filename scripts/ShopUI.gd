@@ -208,14 +208,15 @@ func _on_any_offer_item_pressed(offer_to_purchase: ShopOffer) -> void:
 		return
 
 	if current_shop_mode == ShopMode.SELL:
-		if offer_to_purchase.unique_id == "SELL_ALL_AMMOLITE_DYNAMIC":
+		if offer_to_purchase.unique_id == "SELL_ALL_AMMOLITE_DYNAMIC": # Użyj ID zdefiniowanego w populate_offers
 			var amount_to_sell = player_inventory.get_amount_of_item_type(ammolite_item_type_ref)
 			if amount_to_sell > 0:
 				if game_manager.has_method("remove_items_by_type") and \
 				   game_manager.remove_items_by_type(ammolite_item_type_ref, amount_to_sell):
 					if game_manager.has_method("add_player_coins"):
-						game_manager.add_player_coins(amount_to_sell * 30) # Cena 30 monet za sztukę (zaktualizowane)
-						populate_offers()
+						# Upewnij się, że mnożnik ceny jest poprawny (np. 30 za sztukę, jak miałeś)
+						game_manager.add_player_coins(amount_to_sell * 30) 
+						populate_offers() # Odśwież oferty po sprzedaży
 					else: 
 						printerr("ShopUI (SELL): game_manager missing add_player_coins method!")
 				else: 
@@ -227,7 +228,7 @@ func _on_any_offer_item_pressed(offer_to_purchase: ShopOffer) -> void:
 	
 	elif current_shop_mode == ShopMode.BUY:
 		# Porównujemy z unique_id z preładowanej oferty ulepszenia kilofa
-		if offer_to_purchase.unique_id == pickaxe_upgrade_offer_ref.unique_id: # Używamy pickaxe_upgrade_offer_ref do porównania ID
+		if offer_to_purchase.unique_id == pickaxe_upgrade_offer_ref.unique_id:
 			if not (game_manager.has_method("has_upgrade") and \
 					game_manager.has_method("grant_upgrade") and \
 					game_manager.has_method("get_player_coins") and \
@@ -244,33 +245,30 @@ func _on_any_offer_item_pressed(offer_to_purchase: ShopOffer) -> void:
 				print("ShopUI: Pickaxe upgrade ('%s') already purchased." % upgrade_id_string)
 				return
 
-			# === POPRAWKA: Użyj offer_to_purchase do odczytania kosztu ===
 			var cost_in_coins = offer_to_purchase.cost_amount 
-			# ============================================================
-			var player_current_coins = 0 # Zmienna lokalna
+			var player_current_coins = 0
+			
 			if game_manager.has_method("get_player_coins"):
 				player_current_coins = game_manager.get_player_coins()
 			else:
 				printerr("ShopUI (BUY): game_manager is missing get_player_coins() method! Cannot check affordability.")
-				return # Nie możemy kontynuować bez informacji o monetach gracza
+				return 
 
 			print("ShopUI DEBUG (Purchase Attempt): Offer='", offer_to_purchase.offer_name, 
 				  "'. Cost: ", cost_in_coins, ", Player has: ", player_current_coins)
 			
-			# === POPRAWKA: Sprawdź, czy gracza stać ===
-			if player_current_coins >= cost_in_coins:
-			# ==========================================
+			if player_current_coins >= cost_in_coins: # Sprawdzenie, czy gracza stać
 				if game_manager.remove_player_coins(cost_in_coins):
+					# Przekazujemy ID ulepszenia oraz jego wartość (np. mnożnik)
 					game_manager.grant_upgrade(upgrade_id_string, offer_to_purchase.reward_float_data)
 					print("  ShopUI: Purchased Pickaxe Upgrade ('%s'). Refreshing offers." % upgrade_id_string)
-					populate_offers()
+					populate_offers() # Odśwież oferty po zakupie
 				else:
 					printerr("ShopUI (BUY) ERROR: Failed to remove coins for pickaxe upgrade (game_manager.remove_player_coins returned false).")
 			else:
 				print("ShopUI: Not enough coins for pickaxe upgrade. Need %d, have %d." % [cost_in_coins, player_current_coins])
 		else:
 			printerr("ShopUI (BUY): Clicked offer unique_id ('%s') does not match pickaxe_upgrade_offer_ref.unique_id ('%s')." % [offer_to_purchase.unique_id, pickaxe_upgrade_offer_ref.unique_id])
-
 func _connect_tooltip_signals(item_ui_instance: Control, offer_data: ShopOffer):
 	if not is_instance_valid(item_ui_instance) or not is_instance_valid(offer_data): return
 

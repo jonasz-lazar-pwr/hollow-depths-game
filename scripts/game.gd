@@ -136,7 +136,7 @@ func load_game() -> bool:
 			print("Loading old save format for upgrades (Array of Strings). Applying defaults.")
 			for upgrade_id_str in old_upgrades_from_array:
 				var default_value = true 
-				var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP PEŁNYM ID
+				var pickaxe_upgrade_id_from_offer = "PICKAXE_DAMAGE_UPGRADE_1" # ZASTĄP PEŁNYM ID
 				if upgrade_id_str == pickaxe_upgrade_id_from_offer:
 					default_value = 1.5 
 				grant_upgrade(upgrade_id_str, default_value, false)
@@ -227,7 +227,7 @@ func load_game() -> bool:
 	if is_instance_valid(player):
 		for upg_id in current_purchased_upgrades_data:
 			var upg_val = current_purchased_upgrades_data[upg_id]
-			var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP
+			var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_damage_1" # ZASTĄP
 			if upg_id == pickaxe_upgrade_id_from_offer:
 				if player.has_method("apply_pickaxe_damage_upgrade") and (upg_val is float or upg_val is int):
 					player.apply_pickaxe_damage_upgrade(float(upg_val), true)
@@ -736,28 +736,23 @@ func grant_upgrade(upgrade_id: String, value = true, is_new_purchase: bool = tru
 
 		current_purchased_upgrades_data[upgrade_id] = value
 		
-		var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP PEŁNYM ID Z TWOJEJ OFERTY .tres
+		var target_pickaxe_upgrade_id = "upgrade_pickaxe_damage_1" # ZASTĄP PEŁNYM ID Z TWOJEJ OFERTY .tres
 		# Musisz upewnić się, że to ID jest spójne z tym, co masz w `Reward String Data` pliku .tres oferty
 		
-		if upgrade_id == pickaxe_upgrade_id_from_offer: 
+		if upgrade_id == target_pickaxe_upgrade_id: 
 			if is_instance_valid(player) and player.has_method("apply_pickaxe_damage_upgrade"):
 				if value is float or value is int:
-					player.apply_pickaxe_damage_upgrade(float(value), true) # Zakładamy, że wartość z oferty to mnożnik
+					print("Game: Applying pickaxe damage upgrade to player. Value: ", float(value)) # Dodaj log
+					player.apply_pickaxe_damage_upgrade(float(value), true) # true dla mnożnika
 				else:
 					printerr("Game: Value for pickaxe damage upgrade ('%s') is not a number: %s" % [upgrade_id, str(value)])
 			else:
 				printerr("Game: Player instance or apply_pickaxe_damage_upgrade method not found for upgrade: '%s'" % upgrade_id)
-		# Dodaj 'elif' dla innych ulepszeń, np.:
-		# elif upgrade_id == "can_dig_level_2":
-		#     if is_instance_valid(player) and player.has_method("unlock_dig_level"):
-		#         player.unlock_dig_level(2) # Lub przekazując 'value' jeśli to poziom
-		#     else:
-		#         printerr("Game: Player or unlock_dig_level method not found for '%s'" % upgrade_id)
 
 	elif not is_new_purchase and current_purchased_upgrades_data.has(upgrade_id): # Ulepszenie jest już w słowniku, ale to wczytywanie
 		print("Game: Re-applying (verifying) already loaded upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
 		# Ponownie zastosuj logikę, aby upewnić się, że stan gracza jest poprawny
-		var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP
+		var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_damage_1" # ZASTĄP
 		if upgrade_id == pickaxe_upgrade_id_from_offer:
 			if is_instance_valid(player) and player.has_method("apply_pickaxe_damage_upgrade"):
 				if value is float or value is int:

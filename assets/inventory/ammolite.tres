@@ -10,7 +10,7 @@ region = Rect2(48, 0, 16, 16)
 [resource]
 script = ExtResource("1_13b4e")
 name = "Ammolite"
-description = "A precious stone with a relatively low price. In the shop you can sell it for 1 coin"
+description = "A precious stone with a relatively low price."
 texture = SubResource("AtlasTexture_e8185")
 weight = 1
 stackable = true

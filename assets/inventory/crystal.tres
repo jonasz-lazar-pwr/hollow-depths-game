@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="InventoryItemType" load_steps=4 format=3 uid="uid://d4jffqus2weat"]
+
+[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="1_e3xol"]
+[ext_resource type="Texture2D" uid="uid://cbyde4wxvjcuu" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02_stones.png" id="2_4bjxa"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e8185"]
+atlas = ExtResource("2_4bjxa")
+region = Rect2(192, 127.7, 16, 16)
+
+[resource]
+script = ExtResource("1_e3xol")
+name = "Crystal"
+description = "The rarest stone in the world, very valuable, everyone dreams of obtaining it"
+texture = SubResource("AtlasTexture_e8185")
+weight = 1
+stackable = true
+max_stack_size = 99
+metadata/_custom_type_script = "uid://c2kq0x5odumur"

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="InventoryItemType" load_steps=4 format=3 uid="uid://ndariaym0du3"]
+
+[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="1_nfvar"]
+[ext_resource type="Texture2D" uid="uid://cbyde4wxvjcuu" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02_stones.png" id="2_hk6sh"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e8185"]
+atlas = ExtResource("2_hk6sh")
+region = Rect2(192, 0.47, 16, 16)
+
+[resource]
+script = ExtResource("1_nfvar")
+name = "Jasper"
+description = "A rarer stone that occurs in the deeper layers of the world."
+texture = SubResource("AtlasTexture_e8185")
+weight = 1
+stackable = true
+max_stack_size = 99
+metadata/_custom_type_script = "uid://c2kq0x5odumur"

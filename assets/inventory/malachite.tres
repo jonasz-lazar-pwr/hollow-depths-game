@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="InventoryItemType" load_steps=4 format=3 uid="uid://bw7cg3847ysd2"]
+
+[ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="1_hufkg"]
+[ext_resource type="Texture2D" uid="uid://cbyde4wxvjcuu" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02_stones.png" id="2_euvsr"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e8185"]
+atlas = ExtResource("2_euvsr")
+region = Rect2(192, 63.88, 16, 16)
+
+[resource]
+script = ExtResource("1_hufkg")
+name = "Malachite"
+description = "A rare stone that only the most persistent can obtain."
+texture = SubResource("AtlasTexture_e8185")
+weight = 1
+stackable = true
+max_stack_size = 99
+metadata/_custom_type_script = "uid://c2kq0x5odumur"

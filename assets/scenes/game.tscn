@@ -279,7 +279,8 @@ texture = ExtResource("1_yqjtg")
 12:0/0 = 0
 12:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:0/0/custom_data_0 = true
-12:0/0/custom_data_1 = 10000
+12:0/0/custom_data_1 = 3300
+12:0/0/custom_data_2 = "res://assets/inventory/jasper.tres"
 12:0/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -380,7 +381,7 @@ texture = ExtResource("1_yqjtg")
 14:4/0 = 0
 14:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 14:4/0/custom_data_0 = true
-14:4/0/custom_data_1 = 10000
+14:4/0/custom_data_1 = 4000
 14:4/0/metadata/_better_terrain = {
 12: [0],
 &"type": 5
@@ -388,7 +389,7 @@ texture = ExtResource("1_yqjtg")
 13:4/0 = 0
 13:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:4/0/custom_data_0 = true
-13:4/0/custom_data_1 = 10000
+13:4/0/custom_data_1 = 4000
 13:4/0/metadata/_better_terrain = {
 4: [0],
 &"type": 5
@@ -396,7 +397,7 @@ texture = ExtResource("1_yqjtg")
 13:5/0 = 0
 13:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:5/0/custom_data_0 = true
-13:5/0/custom_data_1 = 10000
+13:5/0/custom_data_1 = 4000
 13:5/0/metadata/_better_terrain = {
 4: [0],
 12: [0],
@@ -405,14 +406,14 @@ texture = ExtResource("1_yqjtg")
 13:6/0 = 0
 13:6/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:6/0/custom_data_0 = true
-13:6/0/custom_data_1 = 10000
+13:6/0/custom_data_1 = 4000
 13:6/0/metadata/_better_terrain = {
 &"type": 5
 }
 14:6/0 = 0
 14:6/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 14:6/0/custom_data_0 = true
-14:6/0/custom_data_1 = 10000
+14:6/0/custom_data_1 = 4000
 14:6/0/metadata/_better_terrain = {
 0: [0],
 8: [0],
@@ -423,7 +424,7 @@ texture = ExtResource("1_yqjtg")
 15:6/0 = 0
 15:6/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 15:6/0/custom_data_0 = true
-15:6/0/custom_data_1 = 10000
+15:6/0/custom_data_1 = 4000
 15:6/0/metadata/_better_terrain = {
 8: [0],
 &"type": 5
@@ -431,7 +432,7 @@ texture = ExtResource("1_yqjtg")
 12:6/0 = 0
 12:6/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:6/0/custom_data_0 = true
-12:6/0/custom_data_1 = 10000
+12:6/0/custom_data_1 = 4000
 12:6/0/metadata/_better_terrain = {
 0: [0],
 &"type": 5
@@ -440,7 +441,8 @@ texture = ExtResource("1_yqjtg")
 12:4/0 = 0
 12:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:4/0/custom_data_0 = true
-12:4/0/custom_data_1 = 10000
+12:4/0/custom_data_1 = 6600
+12:4/0/custom_data_2 = "res://assets/inventory/malachite.tres"
 12:4/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -451,7 +453,7 @@ texture = ExtResource("1_yqjtg")
 11:4/0 = 0
 11:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 11:4/0/custom_data_0 = true
-11:4/0/custom_data_1 = 10000
+11:4/0/custom_data_1 = 4000
 11:4/0/metadata/_better_terrain = {
 4: [0],
 8: [0],
@@ -460,7 +462,7 @@ texture = ExtResource("1_yqjtg")
 10:4/0 = 0
 10:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:4/0/custom_data_0 = true
-10:4/0/custom_data_1 = 10000
+10:4/0/custom_data_1 = 4000
 10:4/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -470,7 +472,7 @@ texture = ExtResource("1_yqjtg")
 9:4/0 = 0
 9:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:4/0/custom_data_0 = true
-9:4/0/custom_data_1 = 10000
+9:4/0/custom_data_1 = 4000
 9:4/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -479,7 +481,7 @@ texture = ExtResource("1_yqjtg")
 9:5/0 = 0
 9:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:5/0/custom_data_0 = true
-9:5/0/custom_data_1 = 10000
+9:5/0/custom_data_1 = 4000
 9:5/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -489,7 +491,7 @@ texture = ExtResource("1_yqjtg")
 10:5/0 = 0
 10:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:5/0/custom_data_0 = true
-10:5/0/custom_data_1 = 10000
+10:5/0/custom_data_1 = 4000
 10:5/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -500,7 +502,7 @@ texture = ExtResource("1_yqjtg")
 11:5/0 = 0
 11:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 11:5/0/custom_data_0 = true
-11:5/0/custom_data_1 = 10000
+11:5/0/custom_data_1 = 4000
 11:5/0/metadata/_better_terrain = {
 4: [0],
 8: [0],
@@ -510,7 +512,7 @@ texture = ExtResource("1_yqjtg")
 11:6/0 = 0
 11:6/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 11:6/0/custom_data_0 = true
-11:6/0/custom_data_1 = 10000
+11:6/0/custom_data_1 = 4000
 11:6/0/metadata/_better_terrain = {
 8: [0],
 12: [0],
@@ -519,7 +521,7 @@ texture = ExtResource("1_yqjtg")
 10:6/0 = 0
 10:6/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:6/0/custom_data_0 = true
-10:6/0/custom_data_1 = 10000
+10:6/0/custom_data_1 = 4000
 10:6/0/metadata/_better_terrain = {
 0: [0],
 8: [0],
@@ -529,7 +531,7 @@ texture = ExtResource("1_yqjtg")
 9:6/0 = 0
 9:6/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:6/0/custom_data_0 = true
-9:6/0/custom_data_1 = 10000
+9:6/0/custom_data_1 = 4000
 9:6/0/metadata/_better_terrain = {
 0: [0],
 12: [0],
@@ -538,7 +540,7 @@ texture = ExtResource("1_yqjtg")
 9:8/0 = 0
 9:8/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:8/0/custom_data_0 = true
-9:8/0/custom_data_1 = 10000
+9:8/0/custom_data_1 = 7000
 9:8/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -547,7 +549,7 @@ texture = ExtResource("1_yqjtg")
 10:8/0 = 0
 10:8/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:8/0/custom_data_0 = true
-10:8/0/custom_data_1 = 10000
+10:8/0/custom_data_1 = 7000
 10:8/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -557,7 +559,7 @@ texture = ExtResource("1_yqjtg")
 10:9/0 = 0
 10:9/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:9/0/custom_data_0 = true
-10:9/0/custom_data_1 = 10000
+10:9/0/custom_data_1 = 7000
 10:9/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -568,7 +570,7 @@ texture = ExtResource("1_yqjtg")
 9:9/0 = 0
 9:9/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:9/0/custom_data_0 = true
-9:9/0/custom_data_1 = 10000
+9:9/0/custom_data_1 = 7000
 9:9/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -578,7 +580,7 @@ texture = ExtResource("1_yqjtg")
 9:10/0 = 0
 9:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:10/0/custom_data_0 = true
-9:10/0/custom_data_1 = 10000
+9:10/0/custom_data_1 = 7000
 9:10/0/metadata/_better_terrain = {
 0: [0],
 12: [0],
@@ -587,7 +589,7 @@ texture = ExtResource("1_yqjtg")
 10:10/0 = 0
 10:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:10/0/custom_data_0 = true
-10:10/0/custom_data_1 = 10000
+10:10/0/custom_data_1 = 7000
 10:10/0/metadata/_better_terrain = {
 0: [0],
 8: [0],
@@ -597,7 +599,7 @@ texture = ExtResource("1_yqjtg")
 11:10/0 = 0
 11:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 11:10/0/custom_data_0 = true
-11:10/0/custom_data_1 = 10000
+11:10/0/custom_data_1 = 7000
 11:10/0/metadata/_better_terrain = {
 8: [0],
 12: [0],
@@ -606,7 +608,7 @@ texture = ExtResource("1_yqjtg")
 11:9/0 = 0
 11:9/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 11:9/0/custom_data_0 = true
-11:9/0/custom_data_1 = 10000
+11:9/0/custom_data_1 = 7000
 11:9/0/metadata/_better_terrain = {
 4: [0],
 8: [0],
@@ -616,7 +618,7 @@ texture = ExtResource("1_yqjtg")
 11:8/0 = 0
 11:8/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 11:8/0/custom_data_0 = true
-11:8/0/custom_data_1 = 10000
+11:8/0/custom_data_1 = 7000
 11:8/0/metadata/_better_terrain = {
 4: [0],
 8: [0],
@@ -625,7 +627,8 @@ texture = ExtResource("1_yqjtg")
 12:8/0 = 0
 12:8/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:8/0/custom_data_0 = true
-12:8/0/custom_data_1 = 10000
+12:8/0/custom_data_1 = 9900
+12:8/0/custom_data_2 = "res://assets/inventory/crystal.tres"
 12:8/0/metadata/_better_terrain = {
 0: [0],
 4: [0],
@@ -637,7 +640,7 @@ texture = ExtResource("1_yqjtg")
 12:10/0 = 0
 12:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:10/0/custom_data_0 = true
-12:10/0/custom_data_1 = 10000
+12:10/0/custom_data_1 = 7000
 12:10/0/metadata/_better_terrain = {
 0: [0],
 &"type": 7
@@ -645,14 +648,14 @@ texture = ExtResource("1_yqjtg")
 13:10/0 = 0
 13:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:10/0/custom_data_0 = true
-13:10/0/custom_data_1 = 10000
+13:10/0/custom_data_1 = 7000
 13:10/0/metadata/_better_terrain = {
 &"type": 7
 }
 13:9/0 = 0
 13:9/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:9/0/custom_data_0 = true
-13:9/0/custom_data_1 = 10000
+13:9/0/custom_data_1 = 7000
 13:9/0/metadata/_better_terrain = {
 4: [0],
 12: [0],
@@ -661,7 +664,7 @@ texture = ExtResource("1_yqjtg")
 13:8/0 = 0
 13:8/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:8/0/custom_data_0 = true
-13:8/0/custom_data_1 = 10000
+13:8/0/custom_data_1 = 7000
 13:8/0/metadata/_better_terrain = {
 4: [0],
 &"type": 7
@@ -669,7 +672,7 @@ texture = ExtResource("1_yqjtg")
 14:8/0 = 0
 14:8/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 14:8/0/custom_data_0 = true
-14:8/0/custom_data_1 = 10000
+14:8/0/custom_data_1 = 7000
 14:8/0/metadata/_better_terrain = {
 12: [0],
 &"type": 7
@@ -680,7 +683,7 @@ texture = ExtResource("1_yqjtg")
 14:10/0 = 0
 14:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 14:10/0/custom_data_0 = true
-14:10/0/custom_data_1 = 10000
+14:10/0/custom_data_1 = 7000
 14:10/0/metadata/_better_terrain = {
 0: [0],
 8: [0],
@@ -689,7 +692,7 @@ texture = ExtResource("1_yqjtg")
 15:10/0 = 0
 15:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 15:10/0/custom_data_0 = true
-15:10/0/custom_data_1 = 10000
+15:10/0/custom_data_1 = 7000
 15:10/0/metadata/_better_terrain = {
 8: [0],
 &"type": 7

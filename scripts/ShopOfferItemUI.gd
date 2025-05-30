@@ -9,11 +9,11 @@ signal hide_tooltip_requested()
 @onready var count_label: Label = $BackgroundButton/CenterContainer/IconAndCountVBox/CountLabel
 @onready var background_button: Button = $BackgroundButton
 
-const COLOR_NORMAL_CAN_AFFORD_BUY: Color = Color("4a4a4a")
+const COLOR_NORMAL_CAN_AFFORD_BUY: Color = Color(0.85, 0.85, 0.85, 1.0)
 const COLOR_NORMAL_CANT_AFFORD: Color = Color(0.8, 0.2, 0.2, 1.0)
 const COLOR_NORMAL_OWNED: Color = Color(0.3, 0.3, 0.3, 1.0) # Rzadko używane dla BUY w nowym systemie
 
-const COLOR_HOVER_CAN_AFFORD_BUY: Color = Color("6a6a6a")
+const COLOR_HOVER_CAN_AFFORD_BUY: Color = Color(0.95, 0.95, 0.95, 1.0)
 const COLOR_HOVER_CANT_AFFORD: Color = Color(0.9, 0.3, 0.3, 1.0) # Rzadko używane dla BUY
 
 const COLOR_SELL_AVAILABLE_NORMAL: Color = Color.WHITE

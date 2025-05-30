@@ -818,6 +818,9 @@ offset_bottom = -286.0
 scale = Vector2(1.7, 1.7)
 inventory = ExtResource("6_fc420")
 
+[node name="GridContainer" parent="UI/InventoryGridUI" index="0"]
+columns = 5
+
 [node name="GlobalTooltip" type="PanelContainer" parent="UI"]
 visible = false
 z_index = 100

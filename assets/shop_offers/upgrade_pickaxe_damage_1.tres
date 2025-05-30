@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="ShopOffer" load_steps=2 format=3 uid="uid://dw27tqjbk4k2l"]
+[gd_resource type="Resource" script_class="ShopOffer" load_steps=3 format=3 uid="uid://dw27tqjbk4k2l"]
 
 [ext_resource type="Script" uid="uid://chflva3ovnshi" path="res://scripts/ShopOffer.gd" id="1_jxdfa"]
+[ext_resource type="Texture2D" uid="uid://7opkbvyekt60" path="res://assets/sprites/icons/pickaxe1.tres" id="1_wevv1"]
 
 [resource]
 resource_name = "shop_offer_unlock_level_2_digging"
@@ -10,6 +11,8 @@ description = "Increases pickaxe digging power, allowing for faster mining
 Cost: 30 Coins"
 cost_amount = 30
 reward_type = 2
-reward_string_data = "upgrade_pickaxe_damage_1"
-reward_float_data = 3.0
-unique_id = "PICKAXE_UPGRADE_DAMAGE_1"
+reward_string_data = "PICKAXE_LEVEL_PROGRESS"
+reward_float_data = 9.0
+unique_id = "OFFER_PICKAXE_LVL_1"
+display_icon = ExtResource("1_wevv1")
+level_number = 1

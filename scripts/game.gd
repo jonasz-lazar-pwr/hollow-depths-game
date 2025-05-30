@@ -29,20 +29,18 @@ func save_game():
 		printerr("Cannot save: Player node is invalid.")
 		return
 
-	var ground_tilemap_node = $WorldContainer/TileMap/Ground as TileMapLayer # Zmieniona nazwa dla jasności
+	var ground_tilemap_node = $WorldContainer/TileMap/Ground as TileMapLayer
 	if not is_instance_valid(ground_tilemap_node):
 		printerr("Cannot save: Ground TileMap node is invalid.")
 		return
 
-	var player_data = {
+	var player_data_dict = {
 		"position_x": player.global_position.x,
 		"position_y": player.global_position.y,
 		"current_hp": player.current_hp,
 		"inventory": player.inventory, 
 		"coins": player.coins,
-		# Możesz tu dodać zapis current_digging_damage gracza, aby było bardziej bezpośrednie przy odczycie,
-		# zamiast polegać tylko na ponownym zastosowaniu ulepszeń.
-		# "current_pickaxe_damage": player.current_digging_damage 
+		"current_pickaxe_damage": player.current_digging_damage # Zapisz aktualne obrażenia kilofa
 	}
 
 	var tilemap_ground_state = {}
@@ -64,34 +62,22 @@ func save_game():
 				"y": ladder_node.global_position.y
 				})
 
-	var world_data = {
+	var world_data_dict = {
 		"tilemap_ground_state": tilemap_ground_state,
 		"ladders": ladder_positions
 	}
 
 	var save_resource = SaveGameDataResource.new()
-	save_resource.save_format_version = 1.1 
-	save_resource.player_data = player_data
-	save_resource.world_data = world_data
-	save_resource.purchased_upgrades_data = current_purchased_upgrades_data.duplicate(true)
+	save_resource.save_format_version = self.save_format_version 
+	save_resource.player_data = player_data_dict
+	save_resource.world_data = world_data_dict
+	save_resource.purchased_upgrades_data = current_purchased_upgrades_data.duplicate(true) # Kluczowe dla ulepszeń
 	
-	# Jeśli SaveGameData.gd nadal ma @export var purchased_upgrades: Array[String],
-	# i nie chcesz go usuwać dla starszych save'ów, które mogą go oczekiwać (choć to mało prawdopodobne):
-	# if save_resource.has("purchased_upgrades"): # Sprawdź czy pole istnieje w definicji zasobu
-	#    save_resource.purchased_upgrades = [] # Wypełnij pustą tablicą
-
 	var error = ResourceSaver.save(save_resource, SAVE_PATH)
 	if error == OK:
 		print("Game saved successfully to: ", ProjectSettings.globalize_path(SAVE_PATH))
 	else:
 		printerr("Error saving game: ", error)
-
-
-
-
-# game.gd
-
-# ... (reszta kodu game.gd) ...
 
 func load_game() -> bool:
 	if not FileAccess.file_exists(SAVE_PATH):
@@ -104,50 +90,21 @@ func load_game() -> bool:
 		printerr("Failed to load save data: incorrect resource type at path: %s. Loaded: %s" % [SAVE_PATH, loaded_resource])
 		return false
 
-	# === POPRAWKA: Bezpośredni dostęp do właściwości ===
-	# Jeśli właściwość nie została zapisana w pliku .res, Godot użyje wartości domyślnej ze skryptu.
-	var save_version = loaded_resource.save_format_version # Bezpośredni dostęp
-	print("Save file resource loaded. Version: ", save_version)
-	# ====================================================
+	var loaded_save_version = loaded_resource.save_format_version
+	print("Save file resource loaded. Version: ", loaded_save_version)
+	
+	current_purchased_upgrades_data.clear() # Wyczyść przed wczytaniem
 
-	current_purchased_upgrades_data.clear()
-
-	var loaded_upgrades_from_dict = loaded_resource.purchased_upgrades_data
-	if loaded_upgrades_from_dict is Dictionary and not loaded_upgrades_from_dict.is_empty():
-		print("Loading upgrades from 'purchased_upgrades_data' (Dictionary format)...")
-		for upgrade_id in loaded_upgrades_from_dict:
-			var upgrade_value = loaded_upgrades_from_dict[upgrade_id]
-			grant_upgrade(upgrade_id, upgrade_value, false)
-		print("Loaded upgrades with values: ", current_purchased_upgrades_data)
+	# Wczytaj dane ulepszeń
+	var loaded_upgrades_dict = loaded_resource.purchased_upgrades_data
+	if loaded_upgrades_dict is Dictionary:
+		current_purchased_upgrades_data = loaded_upgrades_dict.duplicate(true)
+		print("Loaded upgrades data: ", current_purchased_upgrades_data)
 	else:
-		# === POPRAWKA: Sprawdzenie starego pola purchased_upgrades ===
-		# Zakładamy, że jeśli SaveGameData.gd ma pole 'purchased_upgrades', to ono istnieje na loaded_resource.
-		# Jeśli go nie ma w definicji skryptu, to odwołanie się do niego da błąd.
-		# Bezpieczniej jest sprawdzić, czy skrypt zasobu w ogóle definiuje to pole,
-		# ale dla uproszczenia, jeśli jest to tylko kompatybilność wsteczna i wiesz, że stare save'y
-		# mogły mieć to pole, a nowe definicje SaveGameData.gd mogą go nie mieć, to poniższa logika
-		# z próbą dostępu i sprawdzeniem typu jest ryzykowna bez dodatkowego zabezpieczenia.
-		# Lepsze podejście, jeśli pole 'purchased_upgrades' może nie istnieć w definicji SaveGameData:
-		var old_upgrades_from_array = null
-		if "purchased_upgrades" in loaded_resource: # Sprawdź, czy klucz istnieje (działa dla obiektów dziedziczących z Object)
-			old_upgrades_from_array = loaded_resource.purchased_upgrades
-		
-		if old_upgrades_from_array is Array and not old_upgrades_from_array.is_empty():
-			print("Loading old save format for upgrades (Array of Strings). Applying defaults.")
-			for upgrade_id_str in old_upgrades_from_array:
-				var default_value = true 
-				var pickaxe_upgrade_id_from_offer = "PICKAXE_DAMAGE_UPGRADE_1" # ZASTĄP PEŁNYM ID
-				if upgrade_id_str == pickaxe_upgrade_id_from_offer:
-					default_value = 1.5 
-				grant_upgrade(upgrade_id_str, default_value, false)
-		elif loaded_upgrades_from_dict is Dictionary and loaded_upgrades_from_dict.is_empty(): # Jeśli nowy format był pusty
-			print("No upgrade data found in 'purchased_upgrades_data' (it was empty).")
-		elif not (loaded_upgrades_from_dict is Dictionary): # Jeśli nowy format nie był słownikiem
-			printerr("'purchased_upgrades_data' was not a Dictionary. Old format also not found or invalid.")
-		else: # Ogólny przypadek, gdy nic nie znaleziono
-			print("No upgrade data (new or old format) found in save file, or data is empty/invalid.")
-	# =============================================================
-		
+		printerr("Loaded 'purchased_upgrades_data' is not a Dictionary or is missing. Upgrades might be default.")
+		current_purchased_upgrades_data["PICKAXE_LEVEL_PROGRESS"] = 0 # Ustaw domyślny, jeśli brakuje
+
+	# Wczytaj dane gracza
 	if not is_instance_valid(player):
 		printerr("Player node is not valid during load_game(). Aborting player data load.")
 	else:
@@ -157,22 +114,31 @@ func load_game() -> bool:
 			player.current_hp = pd.get("current_hp", player.max_hp)
 			player.coins = pd.get("coins", 0)
 			
+			# Wczytaj bezpośrednio obrażenia kilofa, jeśli zapisane
 			if pd.has("current_pickaxe_damage"):
 				if player.has_method("apply_pickaxe_damage_upgrade"):
 					var saved_damage = pd.get("current_pickaxe_damage", player.base_digging_damage)
-					player.apply_pickaxe_damage_upgrade(saved_damage, false)
+					player.apply_pickaxe_damage_upgrade(saved_damage, false) # false, bo to bezpośrednia wartość
 					print("Loaded and applied current_pickaxe_damage directly to player: ", saved_damage)
+			else:
+				# Jeśli current_pickaxe_damage nie było zapisane, odtwórz na podstawie poziomu
+				# To wymaga dostępu do listy ofert, co jest problematyczne tutaj.
+				# Najlepiej jest upewnić się, że current_pickaxe_damage JEST zapisywane.
+				# Jeśli musisz to zrobić, game.gd musiałoby znać mnożniki dla każdego poziomu.
+				print("WARN: current_pickaxe_damage not found in save. Player damage may not be correct unless set by other means.")
+
 
 			var loaded_inventory_res = pd.get("inventory", null)
 			if loaded_inventory_res is Inventory:
 				player.inventory = loaded_inventory_res
 			else:
-				player.inventory = Inventory.new()
+				player.inventory = Inventory.new() # Utwórz nowy, jeśli brak lub zły typ
 				if loaded_inventory_res != null:
 					printerr("Loaded inventory data was not of type Inventory. Creating new.")
 		else:
 			printerr("Loaded 'player_data' is not a Dictionary or is missing. Player state might be default.")
 
+	# Wczytaj dane świata (TileMap, Drabiny)
 	var ground_tilemap_node = $WorldContainer/TileMap/Ground as TileMapLayer
 	var ladders_container_node = $WorldContainer/Ladders
 
@@ -199,9 +165,6 @@ func load_game() -> bool:
 								tile_info.get("atlas_coords", Vector2i(-1, -1)),
 								tile_info.get("alternative", 0)
 							)
-			else:
-				printerr("Loaded 'tilemap_ground_state' is not a Dictionary or is missing from world_data.")
-
 		if is_instance_valid(ladders_container_node) and is_instance_valid(player) and player.ladder_scene:
 			var loaded_ladders_array = wd.get("ladders", [])
 			if loaded_ladders_array is Array:
@@ -217,21 +180,24 @@ func load_game() -> bool:
 							ladder_instance.entered_ladder.connect(player._on_ladder_entered)
 						if not ladder_instance.exited_ladder.is_connected(player._on_ladder_exited):
 							ladder_instance.exited_ladder.connect(player._on_ladder_exited)
-			else:
-				printerr("Loaded 'ladders' data is not an Array or is missing from world_data.")
-		elif not is_instance_valid(player) or not player.ladder_scene:
-			printerr("Cannot load ladders: Player or player.ladder_scene is invalid.")
-	else:
-		printerr("Loaded 'world_data' is not a Dictionary or is missing. World state might be default.")
+	
+	# Zastosuj ponownie efekty ulepszeń (jeśli nie zostały już wczytane bezpośrednio, np. current_pickaxe_damage)
+	# W tym momencie, jeśli current_pickaxe_damage było w save, to już jest ustawione.
+	# Jeśli nie, to player.gd musiałby mieć logikę do odtworzenia obrażeń na podstawie poziomu.
+	# Na przykład, w player.gd _ready() lub specjalna funkcja:
+	# func reapply_pickaxe_level_effect(level: int):
+	#     var multiplier = 1.0 # Default
+	#     if level == 1: multiplier = 1.5
+	#     elif level == 2: multiplier = 2.0
+	#     # etc.
+	#     apply_pickaxe_damage_upgrade(base_digging_damage * multiplier, false) # false bo to już obliczona wartość
+	#
+	# W game.gd load_game() można by wywołać:
+	# if is_instance_valid(player) and not pd.has("current_pickaxe_damage"):
+	#     player.reapply_pickaxe_level_effect(get_upgrade_level("PICKAXE_LEVEL_PROGRESS"))
+
 
 	if is_instance_valid(player):
-		for upg_id in current_purchased_upgrades_data:
-			var upg_val = current_purchased_upgrades_data[upg_id]
-			var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_damage_1" # ZASTĄP
-			if upg_id == pickaxe_upgrade_id_from_offer:
-				if player.has_method("apply_pickaxe_damage_upgrade") and (upg_val is float or upg_val is int):
-					player.apply_pickaxe_damage_upgrade(float(upg_val), true)
-		
 		player.health_updated.emit(player.current_hp, player.max_hp)
 		player.coins_updated.emit(player.coins)
 		if player.inventory: player.inventory_updated.emit(player.inventory)
@@ -242,6 +208,64 @@ func load_game() -> bool:
 	print("Game loaded successfully (full process completed).")
 	get_tree().paused = false
 	return true
+
+# Metoda do przyznawania ulepszeń poziomowych
+func grant_leveled_upgrade(upgrade_key: String, purchased_level: int, effect_value: float) -> void:
+	var current_stored_level = current_purchased_upgrades_data.get(upgrade_key, 0)
+
+	if purchased_level > current_stored_level:
+		current_purchased_upgrades_data[upgrade_key] = purchased_level # Zapisz nowy poziom
+		print("Game: Granted leveled upgrade '%s' to Lvl. %d." % [upgrade_key, purchased_level])
+		
+		if upgrade_key == "PICKAXE_LEVEL_PROGRESS": # Teraz ten warunek powinien być spełniony
+			if is_instance_valid(player) and player.has_method("apply_pickaxe_damage_upgrade"):
+				# effect_value to mnożnik obrażeń zdefiniowany w ShopOffer.reward_float_data
+				player.apply_pickaxe_damage_upgrade(effect_value, true) # true, bo to mnożnik
+				print("Game: Applied pickaxe Lvl. %d effect. Effect value (multiplier): %s. Player new damage: %s" % [purchased_level, effect_value, player.current_digging_damage]) # Dodatkowy log
+			else:
+				printerr("Game: Player instance or apply_pickaxe_damage_upgrade method not found for PICKAXE_LEVEL_PROGRESS.")
+		# Możesz dodać obsługę innych typów ulepszeń poziomowych tutaj
+	else:
+		printerr("Game: Attempted to grant %s Lvl. %d, but Lvl. %d (or higher) is already owned or invalid." % [upgrade_key, purchased_level, current_stored_level])
+# Metoda do sprawdzania aktualnego poziomu ulepszenia
+func get_upgrade_level(upgrade_key: String) -> int:
+	return current_purchased_upgrades_data.get(upgrade_key, 0) # Zwraca 0 jeśli klucz nie istnieje (brak ulepszeń)
+
+
+# Stara funkcja grant_upgrade - zostawiona dla kompatybilności lub innych typów ulepszeń
+# Jeśli używasz tylko nowego systemu dla kilofa, możesz ją usunąć lub dostosować.
+func grant_upgrade(upgrade_id: String, value = true, is_new_purchase: bool = true) -> void:
+	# Ta funkcja może być używana dla prostych, jednorazowych ulepszeń (niepoziomowych)
+	# Jeśli 'upgrade_id' to np. "PICKAXE_LEVEL_PROGRESS", to ta funkcja nie jest odpowiednia
+	# i powinna być użyta grant_leveled_upgrade.
+
+	if upgrade_id == "PICKAXE_LEVEL_PROGRESS": # Przekieruj do nowej funkcji, jeśli to stary save
+		if value is int and value > 0: # Zakładamy, że 'value' to stary poziom
+			printerr("Game: grant_upgrade called for PICKAXE_LEVEL_PROGRESS with value %s. This should use grant_leveled_upgrade. Attempting conversion if possible." % str(value))
+			# Potrzebowałbyś tu logiki do znalezienia mnożnika dla danego poziomu `value`
+			# i wywołania grant_leveled_upgrade. To skomplikowane dla starego formatu.
+			# Na razie zignorujemy, zakładając, że nowe save'y używają `purchased_upgrades_data` poprawnie.
+		return
+
+	# Logika dla innych, prostych ulepszeń
+	if not current_purchased_upgrades_data.has(upgrade_id) or is_new_purchase:
+		if is_new_purchase:
+			print("Game: Granted simple upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
+		else:
+			print("Game: Applying loaded simple upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
+		current_purchased_upgrades_data[upgrade_id] = value
+		# Dodaj logikę efektu dla tego prostego ulepszenia, jeśli jest potrzebna
+	elif not is_new_purchase and current_purchased_upgrades_data.has(upgrade_id):
+		print("Game: Re-applying (verifying) already loaded simple upgrade: '%s'" % upgrade_id)
+
+
+# --- Reszta funkcji game.gd (bez zmian w stosunku do Twojej wersji) ---
+# _ready, _process, _draw, open_shop_ui, close_shop_ui, add_player_coins, remove_player_coins,
+# show_and_update_global_tooltip_content, _finalize_tooltip_layout_and_position,
+# _position_and_finalize_tooltip, hide_global_tooltip, _on_player_died,
+# _unhandled_input, _on_InventoryButton_pressed, remove_items_by_type,
+# _on_shop_area_body_entered, _on_shop_area_body_exited, handle_shop_shortcut,
+# _reconnect_inventory_signals, has_upgrade, get_player_coins
 
 # --- Nowa funkcja do dodawania monet (wywoływana przez ShopUI) ---
 func add_player_coins(amount: int):
@@ -312,6 +336,8 @@ func open_shop_ui() -> void:
 func _initialize_new_game_state():
 	print("Initializing new game state...")
 	current_purchased_upgrades_data.clear()
+	# Ustawiamy bazowy poziom dla ulepszeń, które mają poziomy
+	current_purchased_upgrades_data["PICKAXE_LEVEL_PROGRESS"] = 0 # 0 oznacza brak ulepszeń kilofa
 	
 	if is_instance_valid(player):
 		player.global_position = Vector2.ZERO # Lub inna pozycja startowa
@@ -319,20 +345,17 @@ func _initialize_new_game_state():
 		player.coins = 0 
 		if player.inventory: 
 			player.inventory.take_all_items()
-			# Dodaj startowe drabiny (jeśli player._ready() nie jest wywoływane przy nowej grze z menu)
 			if player.ladder_item_type and player.initial_ladders > 0:
 				for i in range(player.initial_ladders):
 					var it = InventoryItem.new()
 					it.item_type = player.ladder_item_type
 					player.inventory.put(it)
 		
-		# Zastosuj bazowe obrażenia kilofa
 		if player.has_method("apply_pickaxe_damage_upgrade"):
-			player.apply_pickaxe_damage_upgrade(1.0, true) # Bazowy mnożnik to 1.0
+			player.apply_pickaxe_damage_upgrade(1.0, true) # Bazowy mnożnik 1.0 dla poziomu 0
 		
-		player.stop_digging() # Zresetuj stan kopania
+		player.stop_digging()
 
-		# Podłączanie sygnałów (jeśli nie są już podłączone)
 		var ui_node = $UI
 		if ui_node:
 			if player.has_signal("health_updated") and ui_node.has_method("_on_player_health_updated"):
@@ -348,13 +371,11 @@ func _initialize_new_game_state():
 		
 		_reconnect_inventory_signals()
 
-		# Wyemituj początkowe wartości dla UI
 		player.health_updated.emit(player.current_hp, player.max_hp)
 		player.coins_updated.emit(player.coins)
 		if player.inventory: player.inventory_updated.emit(player.inventory)
 	else:
 		printerr("Game script: Cannot initialize new game state, Player node is invalid!")
-
 
 func close_shop_ui() -> void:
 	print("DEBUG game.gd: close_shop_ui() CALLED.")
@@ -411,29 +432,23 @@ func _ready():
 	if is_instance_valid(pause_menu): pause_menu.hide()
 	else: printerr("Game script cannot find PauseMenu node!")
 	
-	var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
-	if is_instance_valid(ground_tilemap) and is_instance_valid(ground_tilemap.tile_set): # Dodatkowe sprawdzenie tile_set
-		# Pozycja środka komórki (4, -2)
-		var cell_4_n2_center = ground_tilemap.map_to_local(Vector2i(4, -2))
-		
-		# Rozmiar kafelka jako Vector2
-		var tile_size_float: Vector2 = Vector2(ground_tilemap.tile_set.tile_size) # <--- KONWERSJA
-
-		# Lewy górny róg kafla (4,-2):
+	var gt_map = $WorldContainer/TileMap/Ground as TileMapLayer # Zmieniona nazwa zmiennej, aby uniknąć konfliktu
+	if is_instance_valid(gt_map) and is_instance_valid(gt_map.tile_set):
+		var cell_4_n2_center = gt_map.map_to_local(Vector2i(4, -2))
+		var tile_size_float: Vector2 = Vector2(gt_map.tile_set.tile_size)
 		var top_left_of_cell_4_n2 = cell_4_n2_center - tile_size_float / 2.0
-		
-		# Środek obszaru 2x2 będzie przesunięty o (tile_size.x, tile_size.y) od lewego górnego rogu kafla (4,-2)
-		var shop_area_center_pos = top_left_of_cell_4_n2 + tile_size_float # <--- UŻYJ tile_size_float
+		var shop_area_center_pos = top_left_of_cell_4_n2 + tile_size_float
 		print("Obliczona pozycja ShopArea: ", shop_area_center_pos)
+		# Ustawienie pozycji ShopArea (jeśli to robisz w kodzie)
+		# var shop_area_node = $WorldContainer/ShopArea
+		# if is_instance_valid(shop_area_node):
+		#     shop_area_node.global_position = shop_area_center_pos
 	else:
-		if not is_instance_valid(ground_tilemap):
+		if not is_instance_valid(gt_map):
 			printerr("Ground TileMap not found for ShopArea position calculation!")
-		elif not is_instance_valid(ground_tilemap.tile_set):
+		elif not is_instance_valid(gt_map.tile_set):
 			printerr("TileSet on Ground TileMap not found for ShopArea position calculation!")
 
-# game.gd
-# ... (reszta kodu game.gd bez zmian) ...
-# scripts/game.gd
 
 func show_and_update_global_tooltip_content(text_title: String, text_description: String, item_global_rect: Rect2) -> void:
 	if not is_instance_valid(global_tooltip_panel):
@@ -727,36 +742,6 @@ func get_player_coins() -> int:
 		return player.coins
 	return 0 # Zwróć 0, jeśli gracz nie jest dostępny
 # Przyznaje graczowi ulepszenie
-func grant_upgrade(upgrade_id: String, value = true, is_new_purchase: bool = true) -> void:
-	if not current_purchased_upgrades_data.has(upgrade_id) or is_new_purchase:
-		if is_new_purchase:
-			print("Game: Granted new upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
-		else:
-			print("Game: Applying loaded upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
-
-		current_purchased_upgrades_data[upgrade_id] = value
-		
-		var target_pickaxe_upgrade_id = "upgrade_pickaxe_damage_1" # ZASTĄP PEŁNYM ID Z TWOJEJ OFERTY .tres
-		# Musisz upewnić się, że to ID jest spójne z tym, co masz w `Reward String Data` pliku .tres oferty
-		
-		if upgrade_id == target_pickaxe_upgrade_id: 
-			if is_instance_valid(player) and player.has_method("apply_pickaxe_damage_upgrade"):
-				if value is float or value is int:
-					print("Game: Applying pickaxe damage upgrade to player. Value: ", float(value)) # Dodaj log
-					player.apply_pickaxe_damage_upgrade(float(value), true) # true dla mnożnika
-				else:
-					printerr("Game: Value for pickaxe damage upgrade ('%s') is not a number: %s" % [upgrade_id, str(value)])
-			else:
-				printerr("Game: Player instance or apply_pickaxe_damage_upgrade method not found for upgrade: '%s'" % upgrade_id)
-
-	elif not is_new_purchase and current_purchased_upgrades_data.has(upgrade_id): # Ulepszenie jest już w słowniku, ale to wczytywanie
-		print("Game: Re-applying (verifying) already loaded upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
-		# Ponownie zastosuj logikę, aby upewnić się, że stan gracza jest poprawny
-		var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_damage_1" # ZASTĄP
-		if upgrade_id == pickaxe_upgrade_id_from_offer:
-			if is_instance_valid(player) and player.has_method("apply_pickaxe_damage_upgrade"):
-				if value is float or value is int:
-					player.apply_pickaxe_damage_upgrade(float(value), true)
 
 # Reszta funkcji (add_player_coins, remove_player_coins, open_shop_ui, close_shop_ui, 
 # _reconnect_inventory_signals, show_and_update_global_tooltip_content, _finalize_tooltip_layout_and_position,

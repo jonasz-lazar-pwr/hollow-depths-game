@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ShopOffer" load_steps=3 format=3 uid="uid://dggg7w0kcbl64"]
+
+[ext_resource type="Script" uid="uid://chflva3ovnshi" path="res://scripts/ShopOffer.gd" id="1_0ucdo"]
+[ext_resource type="Texture2D" uid="uid://3a6cnv81gv41" path="res://assets/sprites/icons/pickaxe2.tres" id="1_1lo4t"]
+
+[resource]
+resource_name = "shop_offer_unlock_level_2_digging"
+script = ExtResource("1_0ucdo")
+offer_name = "Upgrade Pickaxe (Lvl 3)"
+description = "Increases pickaxe digging power, allowing for faster mining
+Cost: 33 Coins"
+cost_amount = 33
+reward_type = 2
+reward_string_data = "PICKAXE_LEVEL_PROGRESS"
+reward_float_data = 18.0
+unique_id = "PICKAOFFER_PICKAXE_LVL_2"
+display_icon = ExtResource("1_1lo4t")
+level_number = 2

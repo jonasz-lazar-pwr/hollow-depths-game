@@ -1,4 +1,3 @@
-# game.gd
 extends Node2D
 
 @onready var player = $WorldContainer/Player
@@ -8,53 +7,55 @@ extends Node2D
 @onready var global_tooltip_title: Label = $UI/GlobalTooltip/TooltipMargin/TooltipVBox/TooltipTitle
 @onready var global_tooltip_description: Label = $UI/GlobalTooltip/TooltipMargin/TooltipVBox/TooltipDescription
 @onready var global_tooltip_vbox: VBoxContainer = $UI/GlobalTooltip/TooltipMargin/TooltipVBox
-@onready var global_tooltip_margin_container: MarginContainer = $UI/GlobalTooltip/TooltipMargin # Dodaj, jeśli jeszcze nie mas
+@onready var global_tooltip_margin_container: MarginContainer = $UI/GlobalTooltip/TooltipMargin
 @export var highlight_source_id: int = 3
 @export var highlight_atlas_coords: Vector2i = Vector2i(0, 7)
 @export var highlight_modulate: Color = Color(1.0, 1.0, 1.0, 1.0)
-
-var highlighted_dig_cell: Vector2i = Vector2i(-1, -1) # Przechowuje koordynaty podświetlanej komórki
-
-@onready var ground_tilemap = $WorldContainer/TileMap/Ground # Upewnij się, że ścieżka jest poprawna
+@export var purchased_upgrades_data: Dictionary = {}
+@export var save_format_version: float = 1.0 # Możesz zmienić na 1.1, jeśli chcesz oznaczyć zmianę formatu
+@export var player_data: Dictionary = {}
+@export var world_data: Dictionary = {}
+var highlighted_dig_cell: Vector2i = Vector2i(-1, -1)
+var current_purchased_upgrades_data: Dictionary = {} # Używamy tylko tego do przechowywania ulepszeń
+@onready var ground_tilemap = $WorldContainer/TileMap/Ground
 
 const SAVE_PATH = "res://savegame.res"
 var current_tooltip_instance: PanelContainer = null 
 const SaveGameDataResource = preload("res://scripts/save_game_data.gd")
-var current_purchased_upgrades: Array[String] = []
+# Usunięto: var current_purchased_upgrades: Array[String] = []
+
 func save_game():
 	if not is_instance_valid(player):
 		printerr("Cannot save: Player node is invalid.")
 		return
 
-	var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
-	if not is_instance_valid(ground_tilemap):
+	var ground_tilemap_node = $WorldContainer/TileMap/Ground as TileMapLayer # Zmieniona nazwa dla jasności
+	if not is_instance_valid(ground_tilemap_node):
 		printerr("Cannot save: Ground TileMap node is invalid.")
 		return
 
-	# --- Prepare Player Data (Dictionary - stays the same) ---
 	var player_data = {
 		"position_x": player.global_position.x,
 		"position_y": player.global_position.y,
 		"current_hp": player.current_hp,
-		"inventory": player.inventory, # Store the actual Inventory resource
-		"coins": player.coins # <<< DODAJ ZAPIS MONET
+		"inventory": player.inventory, 
+		"coins": player.coins,
+		# Możesz tu dodać zapis current_digging_damage gracza, aby było bardziej bezpośrednie przy odczycie,
+		# zamiast polegać tylko na ponownym zastosowaniu ulepszeń.
+		# "current_pickaxe_damage": player.current_digging_damage 
 	}
 
-	# --- Prepare World Data (Dictionary - stays the same) ---
-	# TileMap State
 	var tilemap_ground_state = {}
-	var used_cells = ground_tilemap.get_used_cells()
+	var used_cells = ground_tilemap_node.get_used_cells()
 	for cell_coords in used_cells:
-		var source_id = ground_tilemap.get_cell_source_id(cell_coords)
+		var source_id = ground_tilemap_node.get_cell_source_id(cell_coords)
 		if source_id != -1:
-			# Important: ResourceSaver CAN serialize Vector2i keys in dictionaries *within* a Resource
 			tilemap_ground_state[cell_coords] = {
 				"source_id": source_id,
-				"atlas_coords": ground_tilemap.get_cell_atlas_coords(cell_coords),
-				"alternative": ground_tilemap.get_cell_alternative_tile(cell_coords)
+				"atlas_coords": ground_tilemap_node.get_cell_atlas_coords(cell_coords),
+				"alternative": ground_tilemap_node.get_cell_alternative_tile(cell_coords)
 			}
 
-	# Ladder Positions
 	var ladder_positions = []
 	for ladder_node in get_tree().get_nodes_in_group("ladders"):
 		if is_instance_valid(ladder_node):
@@ -68,135 +69,177 @@ func save_game():
 		"ladders": ladder_positions
 	}
 
-	# --- Assemble Save Data Resource ---
-	# Create an INSTANCE of our custom resource
-	var save_resource = SaveGameDataResource.new() # Use the preloaded script or just SaveGameData.new()
-
-	# Populate its exported variables
-	save_resource.save_format_version = 1.0
+	var save_resource = SaveGameDataResource.new()
+	save_resource.save_format_version = 1.1 
 	save_resource.player_data = player_data
 	save_resource.world_data = world_data
-	save_resource.purchased_upgrades = current_purchased_upgrades.duplicate()
-	# Assign other data if added to SaveGameData
+	save_resource.purchased_upgrades_data = current_purchased_upgrades_data.duplicate(true)
+	
+	# Jeśli SaveGameData.gd nadal ma @export var purchased_upgrades: Array[String],
+	# i nie chcesz go usuwać dla starszych save'ów, które mogą go oczekiwać (choć to mało prawdopodobne):
+	# if save_resource.has("purchased_upgrades"): # Sprawdź czy pole istnieje w definicji zasobu
+	#    save_resource.purchased_upgrades = [] # Wypełnij pustą tablicą
 
-	# --- Save to File ---
-	# Pass the SaveGameData Resource object to ResourceSaver
-	var error = ResourceSaver.save(save_resource, SAVE_PATH) # NO LONGER PASSING A DICTIONARY
+	var error = ResourceSaver.save(save_resource, SAVE_PATH)
 	if error == OK:
 		print("Game saved successfully to: ", ProjectSettings.globalize_path(SAVE_PATH))
-		# show_save_message()
 	else:
 		printerr("Error saving game: ", error)
-		# show_save_error_message()
 
 
-# --- LOAD FUNCTION (Modified) ---
-func load_game():
+
+
+# game.gd
+
+# ... (reszta kodu game.gd) ...
+
+func load_game() -> bool:
 	if not FileAccess.file_exists(SAVE_PATH):
 		print("No save file found at: ", SAVE_PATH)
 		return false
 
-	# --- Load from File ---
-	# ResourceLoader now returns our SaveGameData instance or null
-	var loaded_resource = ResourceLoader.load(SAVE_PATH)
-
-	# Check if loading succeeded AND if it's the correct type
-	if loaded_resource.has("purchased_upgrades"): # Dodaj sprawdzenie na wypadek starych save'ów
-		current_purchased_upgrades = loaded_resource.purchased_upgrades.duplicate() # <-- DODAJ TO
-	else:
-		current_purchased_upgrades = [] # Zainicjuj jako pustą, jeśli brak w save
-	if loaded_resource.has("player_data"):
-		var pd = loaded_resource.player_data
-		if pd.has("coins"):
-			player.coins = pd.get("coins", 0) # <<< DODAJ WCZYTYWANIE MONET
-			player.coins_updated.emit(player.coins)
-	print("Game loaded successfully.")
-	print("Loaded upgrades: ", current_purchased_upgrades) # Debug
-	get_tree().paused = false
-	# _reconnect_inventory_signals() # Upewnij się, że to jest wywoływane
-	return true
-
-	# --- Version Check ---
-	var save_version = loaded_resource.save_format_version # Access variable directly
-	if save_version != 1.0:
-		printerr("Save file version mismatch! Expected 1.0, got ", save_version)
+	var loaded_resource = ResourceLoader.load(SAVE_PATH, "", ResourceLoader.CACHE_MODE_IGNORE)
+	
+	if not loaded_resource is SaveGameData:
+		printerr("Failed to load save data: incorrect resource type at path: %s. Loaded: %s" % [SAVE_PATH, loaded_resource])
 		return false
 
-	# --- Reset Current State BEFORE Loading ---
+	# === POPRAWKA: Bezpośredni dostęp do właściwości ===
+	# Jeśli właściwość nie została zapisana w pliku .res, Godot użyje wartości domyślnej ze skryptu.
+	var save_version = loaded_resource.save_format_version # Bezpośredni dostęp
+	print("Save file resource loaded. Version: ", save_version)
+	# ====================================================
+
+	current_purchased_upgrades_data.clear()
+
+	var loaded_upgrades_from_dict = loaded_resource.purchased_upgrades_data
+	if loaded_upgrades_from_dict is Dictionary and not loaded_upgrades_from_dict.is_empty():
+		print("Loading upgrades from 'purchased_upgrades_data' (Dictionary format)...")
+		for upgrade_id in loaded_upgrades_from_dict:
+			var upgrade_value = loaded_upgrades_from_dict[upgrade_id]
+			grant_upgrade(upgrade_id, upgrade_value, false)
+		print("Loaded upgrades with values: ", current_purchased_upgrades_data)
+	else:
+		# === POPRAWKA: Sprawdzenie starego pola purchased_upgrades ===
+		# Zakładamy, że jeśli SaveGameData.gd ma pole 'purchased_upgrades', to ono istnieje na loaded_resource.
+		# Jeśli go nie ma w definicji skryptu, to odwołanie się do niego da błąd.
+		# Bezpieczniej jest sprawdzić, czy skrypt zasobu w ogóle definiuje to pole,
+		# ale dla uproszczenia, jeśli jest to tylko kompatybilność wsteczna i wiesz, że stare save'y
+		# mogły mieć to pole, a nowe definicje SaveGameData.gd mogą go nie mieć, to poniższa logika
+		# z próbą dostępu i sprawdzeniem typu jest ryzykowna bez dodatkowego zabezpieczenia.
+		# Lepsze podejście, jeśli pole 'purchased_upgrades' może nie istnieć w definicji SaveGameData:
+		var old_upgrades_from_array = null
+		if "purchased_upgrades" in loaded_resource: # Sprawdź, czy klucz istnieje (działa dla obiektów dziedziczących z Object)
+			old_upgrades_from_array = loaded_resource.purchased_upgrades
+		
+		if old_upgrades_from_array is Array and not old_upgrades_from_array.is_empty():
+			print("Loading old save format for upgrades (Array of Strings). Applying defaults.")
+			for upgrade_id_str in old_upgrades_from_array:
+				var default_value = true 
+				var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP PEŁNYM ID
+				if upgrade_id_str == pickaxe_upgrade_id_from_offer:
+					default_value = 1.5 
+				grant_upgrade(upgrade_id_str, default_value, false)
+		elif loaded_upgrades_from_dict is Dictionary and loaded_upgrades_from_dict.is_empty(): # Jeśli nowy format był pusty
+			print("No upgrade data found in 'purchased_upgrades_data' (it was empty).")
+		elif not (loaded_upgrades_from_dict is Dictionary): # Jeśli nowy format nie był słownikiem
+			printerr("'purchased_upgrades_data' was not a Dictionary. Old format also not found or invalid.")
+		else: # Ogólny przypadek, gdy nic nie znaleziono
+			print("No upgrade data (new or old format) found in save file, or data is empty/invalid.")
+	# =============================================================
+		
 	if not is_instance_valid(player):
-		printerr("Cannot load: Player node is invalid.")
-		return false
-	var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
-	if not is_instance_valid(ground_tilemap):
-		printerr("Cannot load: Ground TileMap node is invalid.")
-		return false
-
-	ground_tilemap.clear()
-	for ladder_node in get_tree().get_nodes_in_group("ladders"):
-		if is_instance_valid(ladder_node):
-			ladder_node.queue_free()
-	player.stop_digging()
-
-	_initialize_new_game_state()
-	# --- Apply Loaded Data ---
-	# Player Data - Access from the loaded resource's variables
-	var loaded_player_data = loaded_resource.player_data
-	player.global_position = Vector2(
-		loaded_player_data.get("position_x", player.global_position.x),
-		loaded_player_data.get("position_y", player.global_position.y)
-	)
-	player.current_hp = loaded_player_data.get("current_hp", player.max_hp)
-	var loaded_inventory = loaded_player_data.get("inventory")
-	if loaded_inventory is Inventory:
-		player.inventory = loaded_inventory # Assign the loaded Inventory Resource
-		# Re-emit signals
-		player.emit_signal("inventory_updated", player.inventory)
-		player.emit_signal("health_updated", player.current_hp, player.max_hp)
-		# Reconnect signals if needed (though direct resource assignment might keep them)
-		_reconnect_inventory_signals() # Optional helper function below
+		printerr("Player node is not valid during load_game(). Aborting player data load.")
 	else:
-		printerr("Loaded inventory data is invalid or missing!")
-		player.inventory = Inventory.new() # Fallback: create a new empty one
+		var pd = loaded_resource.player_data
+		if pd is Dictionary:
+			player.global_position = Vector2(pd.get("position_x", player.global_position.x), pd.get("position_y", player.global_position.y))
+			player.current_hp = pd.get("current_hp", player.max_hp)
+			player.coins = pd.get("coins", 0)
+			
+			if pd.has("current_pickaxe_damage"):
+				if player.has_method("apply_pickaxe_damage_upgrade"):
+					var saved_damage = pd.get("current_pickaxe_damage", player.base_digging_damage)
+					player.apply_pickaxe_damage_upgrade(saved_damage, false)
+					print("Loaded and applied current_pickaxe_damage directly to player: ", saved_damage)
 
+			var loaded_inventory_res = pd.get("inventory", null)
+			if loaded_inventory_res is Inventory:
+				player.inventory = loaded_inventory_res
+			else:
+				player.inventory = Inventory.new()
+				if loaded_inventory_res != null:
+					printerr("Loaded inventory data was not of type Inventory. Creating new.")
+		else:
+			printerr("Loaded 'player_data' is not a Dictionary or is missing. Player state might be default.")
 
-	# World Data - Access from the loaded resource's variables
-	var loaded_world_data = loaded_resource.world_data
+	var ground_tilemap_node = $WorldContainer/TileMap/Ground as TileMapLayer
+	var ladders_container_node = $WorldContainer/Ladders
 
-	# TileMap State: Recreate the ground layer
-	var loaded_tilemap_state = loaded_world_data.get("tilemap_ground_state", {})
-	# Vector2i keys ARE usually saved correctly when inside a Resource's dictionary
-	for cell_coords in loaded_tilemap_state:
-		var tile_info = loaded_tilemap_state[cell_coords]
-		ground_tilemap.set_cell(
-			cell_coords, # Should be Vector2i directly
-			tile_info.get("source_id", -1),
-			tile_info.get("atlas_coords", Vector2i(-1, -1)),
-			tile_info.get("alternative", 0)
-		)
+	if is_instance_valid(ground_tilemap_node): ground_tilemap_node.clear()
+	else: printerr("Ground TileMap node is not valid during load_game(). Cannot load tilemap state.")
 
-	# Ladders: Recreate ladders
-	var loaded_ladders = loaded_world_data.get("ladders", [])
-	var ladders_container = $WorldContainer/Ladders
-	if not is_instance_valid(ladders_container):
-		printerr("Ladders container node is invalid!")
+	if is_instance_valid(ladders_container_node):
+		for existing_ladder in ladders_container_node.get_children(): existing_ladder.queue_free()
+	else: printerr("Ladders container node is not valid during load_game(). Cannot load ladders.")
+
+	var wd = loaded_resource.world_data
+	if wd is Dictionary:
+		if is_instance_valid(ground_tilemap_node):
+			var loaded_tilemap_state = wd.get("tilemap_ground_state", {})
+			if loaded_tilemap_state is Dictionary:
+				for cell_coords_variant in loaded_tilemap_state:
+					if cell_coords_variant is Vector2i:
+						var cell_coords: Vector2i = cell_coords_variant
+						var tile_info = loaded_tilemap_state[cell_coords]
+						if tile_info is Dictionary:
+							ground_tilemap_node.set_cell(
+								cell_coords,
+								tile_info.get("source_id", -1),
+								tile_info.get("atlas_coords", Vector2i(-1, -1)),
+								tile_info.get("alternative", 0)
+							)
+			else:
+				printerr("Loaded 'tilemap_ground_state' is not a Dictionary or is missing from world_data.")
+
+		if is_instance_valid(ladders_container_node) and is_instance_valid(player) and player.ladder_scene:
+			var loaded_ladders_array = wd.get("ladders", [])
+			if loaded_ladders_array is Array:
+				for ladder_pos_data in loaded_ladders_array:
+					if ladder_pos_data is Dictionary:
+						var ladder_instance = player.ladder_scene.instantiate()
+						ladder_instance.global_position = Vector2(
+							ladder_pos_data.get("x", 0.0),
+							ladder_pos_data.get("y", 0.0)
+						)
+						ladders_container_node.add_child(ladder_instance)
+						if not ladder_instance.entered_ladder.is_connected(player._on_ladder_entered):
+							ladder_instance.entered_ladder.connect(player._on_ladder_entered)
+						if not ladder_instance.exited_ladder.is_connected(player._on_ladder_exited):
+							ladder_instance.exited_ladder.connect(player._on_ladder_exited)
+			else:
+				printerr("Loaded 'ladders' data is not an Array or is missing from world_data.")
+		elif not is_instance_valid(player) or not player.ladder_scene:
+			printerr("Cannot load ladders: Player or player.ladder_scene is invalid.")
 	else:
-		for ladder_pos_data in loaded_ladders:
-			if not player.ladder_scene:
-				printerr("Player's ladder_scene is not set!")
-				continue
-			var ladder_instance = player.ladder_scene.instantiate()
-			ladder_instance.global_position = Vector2(
-				ladder_pos_data.get("x", 0.0),
-				ladder_pos_data.get("y", 0.0)
-				)
-			ladders_container.add_child(ladder_instance)
-			# Reconnect signals
-			if not ladder_instance.entered_ladder.is_connected(player._on_ladder_entered):
-				ladder_instance.entered_ladder.connect(player._on_ladder_entered)
-			if not ladder_instance.exited_ladder.is_connected(player._on_ladder_exited):
-				ladder_instance.exited_ladder.connect(player._on_ladder_exited)
+		printerr("Loaded 'world_data' is not a Dictionary or is missing. World state might be default.")
 
-	print("Game loaded successfully.")
+	if is_instance_valid(player):
+		for upg_id in current_purchased_upgrades_data:
+			var upg_val = current_purchased_upgrades_data[upg_id]
+			var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP
+			if upg_id == pickaxe_upgrade_id_from_offer:
+				if player.has_method("apply_pickaxe_damage_upgrade") and (upg_val is float or upg_val is int):
+					player.apply_pickaxe_damage_upgrade(float(upg_val), true)
+		
+		player.health_updated.emit(player.current_hp, player.max_hp)
+		player.coins_updated.emit(player.coins)
+		if player.inventory: player.inventory_updated.emit(player.inventory)
+		player.stop_digging() 
+	
+	_reconnect_inventory_signals() 
+
+	print("Game loaded successfully (full process completed).")
 	get_tree().paused = false
 	return true
 
@@ -267,50 +310,51 @@ func open_shop_ui() -> void:
 	get_tree().paused = true
 	print("Game paused. Shop UI should be open.")
 func _initialize_new_game_state():
-	current_purchased_upgrades = [] # Resetuj zakupione ulepszenia dla nowej gry
+	print("Initializing new game state...")
+	current_purchased_upgrades_data.clear()
+	
 	if is_instance_valid(player):
-		# Zresetuj pozycję gracza, HP itp. dla nowej gry, jeśli jest taka potrzeba
-		# player.global_position = POCZATKOWA_POZYCJA_GRACZA
-		# player.current_hp = player.max_hp
-		# player.inventory.take_all_items() # Wyczyść ekwipunek
+		player.global_position = Vector2.ZERO # Lub inna pozycja startowa
+		player.current_hp = player.max_hp
+		player.coins = 0 
+		if player.inventory: 
+			player.inventory.take_all_items()
+			# Dodaj startowe drabiny (jeśli player._ready() nie jest wywoływane przy nowej grze z menu)
+			if player.ladder_item_type and player.initial_ladders > 0:
+				for i in range(player.initial_ladders):
+					var it = InventoryItem.new()
+					it.item_type = player.ladder_item_type
+					player.inventory.put(it)
+		
+		# Zastosuj bazowe obrażenia kilofa
+		if player.has_method("apply_pickaxe_damage_upgrade"):
+			player.apply_pickaxe_damage_upgrade(1.0, true) # Bazowy mnożnik to 1.0
+		
+		player.stop_digging() # Zresetuj stan kopania
 
-		# Upewnij się, że sygnały są podłączone
+		# Podłączanie sygnałów (jeśli nie są już podłączone)
+		var ui_node = $UI
+		if ui_node:
+			if player.has_signal("health_updated") and ui_node.has_method("_on_player_health_updated"):
+				if not player.health_updated.is_connected(ui_node._on_player_health_updated): 
+					player.health_updated.connect(ui_node._on_player_health_updated)
+			if player.has_signal("coins_updated") and ui_node.has_method("_on_player_coins_updated"):
+				if not player.coins_updated.is_connected(ui_node._on_player_coins_updated): 
+					player.coins_updated.connect(ui_node._on_player_coins_updated)
+		
 		if player.has_signal("player_died"):
-			if not player.player_died.is_connected(_on_player_died):
+			if not player.player_died.is_connected(_on_player_died): 
 				player.player_died.connect(_on_player_died)
-		else:
-			printerr("Player node does not have 'player_died' signal!")
 		
-		var ui_node = $UI # Pobierz węzeł UI
-		if ui_node and ui_node.has_method("_on_player_health_updated"): # Sprawdź czy UI i funkcja istnieją
-			if not player.health_updated.is_connected(ui_node._on_player_health_updated):
-				var err_health = player.health_updated.connect(ui_node._on_player_health_updated)
-				if err_health != OK:
-					printerr("GAME ERROR: Failed to connect player.health_updated to ui._on_player_health_updated. Error: ", err_health)
-				else:
-					print("GAME INFO: Connected player.health_updated to ui._on_player_health_updated.")
-		else:
-			if not ui_node: printerr("GAME ERROR: UI node ($UI) not found for health connection!")
-			elif not ui_node.has_method("_on_player_health_updated"): printerr("GAME ERROR: UI node script does not have _on_player_health_updated method!")
-		
-		# Podłączanie sygnału monet, jeśli istnieje w UI
-		if ui_node and ui_node.has_method("_on_player_coins_updated"):
-			if not player.coins_updated.is_connected(ui_node._on_player_coins_updated):
-				var err_coins = player.coins_updated.connect(ui_node._on_player_coins_updated)
-				if err_coins != OK:
-					printerr("GAME ERROR: Failed to connect player.coins_updated to ui._on_player_coins_updated. Error: ", err_coins)
-				else:
-					print("GAME INFO: Connected player.coins_updated to ui._on_player_coins_updated.")
-		
-		_reconnect_inventory_signals() # Użyj pomocnika do sygnałów ekwipunku
+		_reconnect_inventory_signals()
 
-		# Wyemituj początkowe wartości
-		player.coins_updated.emit(player.coins)
+		# Wyemituj początkowe wartości dla UI
 		player.health_updated.emit(player.current_hp, player.max_hp)
-		player.inventory_updated.emit(player.inventory)
-
+		player.coins_updated.emit(player.coins)
+		if player.inventory: player.inventory_updated.emit(player.inventory)
 	else:
-		printerr("Game script: Cannot initialize new game state, Player node is invalid or not found at path $WorldContainer/Player!")
+		printerr("Game script: Cannot initialize new game state, Player node is invalid!")
+
 
 func close_shop_ui() -> void:
 	print("DEBUG game.gd: close_shop_ui() CALLED.")
@@ -349,38 +393,24 @@ func _reconnect_inventory_signals():
 # Remove the _on_inventory_changed_passthrough function if not needed
 
 func _ready():
-	# Load game attempt
-	if is_instance_valid(global_tooltip_panel):
-		global_tooltip_panel.visible = false
-	else:
-		printerr("Game: GlobalTooltipPanel not found!")
-
-	# Explicitly set autowrap mode for the description label
-	if is_instance_valid(global_tooltip_description):
-		# Ustawmy autowrap, ale to nie jest główny problem, jak zauważyłeś
-		global_tooltip_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	else:
-		printerr("Game: global_tooltip_description Label not found!")
+	if is_instance_valid(global_tooltip_panel): global_tooltip_panel.visible = false
+	else: printerr("Game: GlobalTooltipPanel not found!")
+	if is_instance_valid(global_tooltip_description): global_tooltip_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	else: printerr("Game: global_tooltip_description Label not found!")
 
 	if FileAccess.file_exists(SAVE_PATH):
 		print("Save file found, attempting to load...")
-		if load_game():
-			# If load succeeded, player signals are already handled within load_game
-			pass
-		else:
-			# If load failed, proceed as new game
-			print("Load failed, starting new game.")
+		if not load_game(): 
+			print("Load failed or save file corrupted, starting new game.")
 			_initialize_new_game_state()
 	else:
 		print("No save file found, starting new game.")
 		_initialize_new_game_state()
 
-	if is_instance_valid(game_over_layer):
-		game_over_layer.visible = false
-	if pause_menu:
-		pause_menu.hide()
-	else:
-		printerr("Game script cannot find PauseMenu node!")
+	if is_instance_valid(game_over_layer): game_over_layer.visible = false
+	if is_instance_valid(pause_menu): pause_menu.hide()
+	else: printerr("Game script cannot find PauseMenu node!")
+	
 	var ground_tilemap = $WorldContainer/TileMap/Ground as TileMapLayer
 	if is_instance_valid(ground_tilemap) and is_instance_valid(ground_tilemap.tile_set): # Dodatkowe sprawdzenie tile_set
 		# Pozycja środka komórki (4, -2)
@@ -690,21 +720,55 @@ func _on_InventoryButton_pressed():
 # ... (reszta kodu na górze) ...
 # Sprawdza, czy gracz posiada dane ulepszenie
 func has_upgrade(upgrade_id: String) -> bool:
-	return upgrade_id in current_purchased_upgrades
-
+	return current_purchased_upgrades_data.has(upgrade_id)
+# W game.gd
+func get_player_coins() -> int:
+	if is_instance_valid(player):
+		return player.coins
+	return 0 # Zwróć 0, jeśli gracz nie jest dostępny
 # Przyznaje graczowi ulepszenie
-func grant_upgrade(upgrade_id: String) -> void:
-	if not has_upgrade(upgrade_id):
-		current_purchased_upgrades.append(upgrade_id)
-		print("Granted upgrade:", upgrade_id)
-		# Tutaj możesz wywołać specyficzne funkcje dla danego ulepszenia,
-		# jeśli sama obecność ID w tablicy nie wystarcza.
-		# Np. if upgrade_id == "enable_double_jump": player.can_double_jump = true
-	else:
-		print("Attempted to grant already owned upgrade:", upgrade_id)
+func grant_upgrade(upgrade_id: String, value = true, is_new_purchase: bool = true) -> void:
+	if not current_purchased_upgrades_data.has(upgrade_id) or is_new_purchase:
+		if is_new_purchase:
+			print("Game: Granted new upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
+		else:
+			print("Game: Applying loaded upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
 
-# Funkcja pomocnicza do usuwania przedmiotów (potrzebna w ShopUI)
-# Zwraca true jeśli usunięto pomyślnie, false w przeciwnym razie
+		current_purchased_upgrades_data[upgrade_id] = value
+		
+		var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP PEŁNYM ID Z TWOJEJ OFERTY .tres
+		# Musisz upewnić się, że to ID jest spójne z tym, co masz w `Reward String Data` pliku .tres oferty
+		
+		if upgrade_id == pickaxe_upgrade_id_from_offer: 
+			if is_instance_valid(player) and player.has_method("apply_pickaxe_damage_upgrade"):
+				if value is float or value is int:
+					player.apply_pickaxe_damage_upgrade(float(value), true) # Zakładamy, że wartość z oferty to mnożnik
+				else:
+					printerr("Game: Value for pickaxe damage upgrade ('%s') is not a number: %s" % [upgrade_id, str(value)])
+			else:
+				printerr("Game: Player instance or apply_pickaxe_damage_upgrade method not found for upgrade: '%s'" % upgrade_id)
+		# Dodaj 'elif' dla innych ulepszeń, np.:
+		# elif upgrade_id == "can_dig_level_2":
+		#     if is_instance_valid(player) and player.has_method("unlock_dig_level"):
+		#         player.unlock_dig_level(2) # Lub przekazując 'value' jeśli to poziom
+		#     else:
+		#         printerr("Game: Player or unlock_dig_level method not found for '%s'" % upgrade_id)
+
+	elif not is_new_purchase and current_purchased_upgrades_data.has(upgrade_id): # Ulepszenie jest już w słowniku, ale to wczytywanie
+		print("Game: Re-applying (verifying) already loaded upgrade: '%s' with value: %s" % [upgrade_id, str(value)])
+		# Ponownie zastosuj logikę, aby upewnić się, że stan gracza jest poprawny
+		var pickaxe_upgrade_id_from_offer = "upgrade_pickaxe_dam" # ZASTĄP
+		if upgrade_id == pickaxe_upgrade_id_from_offer:
+			if is_instance_valid(player) and player.has_method("apply_pickaxe_damage_upgrade"):
+				if value is float or value is int:
+					player.apply_pickaxe_damage_upgrade(float(value), true)
+
+# Reszta funkcji (add_player_coins, remove_player_coins, open_shop_ui, close_shop_ui, 
+# _reconnect_inventory_signals, show_and_update_global_tooltip_content, _finalize_tooltip_layout_and_position,
+# _position_and_finalize_tooltip, hide_global_tooltip, _on_player_died, _unhandled_input,
+# _on_InventoryButton_pressed, remove_items_by_type, _process, _draw, _on_shop_area_body_entered,
+# _on_shop_area_body_exited, handle_shop_shortcut)
+# pozostaje taka sama jak w Twojej ostatniej wersji, chyba że chcesz je również przejrzeć pod kątem zmian.
 func remove_items_by_type(item_type: InventoryItemType, amount: int) -> bool:
 	if not is_instance_valid(player) or not player.inventory:
 		printerr("Cannot remove items: Player or inventory invalid.")

@@ -212,3 +212,9 @@ func _on_mouse_exited_item_area() -> void:
 	else:
 		print("DEBUG ShopOfferItemUI: Mouse EXITED (NO OFFER).")
 	_update_visual_state()
+
+func set_display_icon(texture: Texture2D) -> void:
+	if is_instance_valid(item_icon_rect):
+		item_icon_rect.texture = texture
+	else:
+		printerr("ShopOfferItemUI: item_icon_rect is not valid in set_display_icon().")

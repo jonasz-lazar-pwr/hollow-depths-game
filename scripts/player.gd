@@ -19,7 +19,10 @@ signal coins_updated(new_coin_amount: int) # Sygnał do aktualizacji UI monet
 
 var is_currently_falling: bool = false # Flaga śledząca stan spadania
 var fall_start_position_y: float = 0.0 # Pozycja Y, z której rozpoczął się upadek
-
+# --- ZMIANY DLA ULEPSZENIA KILOF ---
+var base_digging_damage: float = 25.0       # Bazowa siła kilofa
+var current_digging_damage: float = 25.0    # Aktualna siła kilofa, inicjalizowana bazową
+# ------------------------------------
 # Używamy systemu kopania z wersji kolegi
 var digging_blocks = {} # Słownik śledzący stan kopanych bloków: {Vector2i(map_coords): current_durability}
 var digging_timer = null # Timer do kontroli kopania
@@ -71,7 +74,8 @@ func _ready() -> void:
 			inventory.put(it)
 		# bezpośrednio po wsadzeniu początkowych drabinek:
 		emit_signal("inventory_updated", inventory)
-
+		
+	current_digging_damage = base_digging_damage
 	
 	# Podłączanie sygnałów drabin już istniejących na scenie
 	for ladder in get_tree().get_nodes_in_group("ladders"):
@@ -376,32 +380,33 @@ func stop_digging() -> void:
 
 
 func dig_block_progress(map_coords: Vector2i) -> void:
-	# Sprawdź, czy nadal kopiemy ten blok
 	if not digging_blocks.has(map_coords):
-		stop_digging() # To powinno teraz usuwać pasek, jeśli istnieje
+		stop_digging()
 		return
 
-	# Odtwórz dźwięk kopania, jeśli nie jest już odtwarzany
-	if not DigSound.playing:
-		DigSound.play()
+	if not DigSound.playing: DigSound.play()
 
-	# Zmniejsz wytrzymałość bloku
-	digging_blocks[map_coords] -= digging_damage
-	print("Digging block at ", map_coords, " - Durability: ", digging_blocks[map_coords])
+	# === KLUCZOWA ZMIANA: UŻYJ current_digging_damage ===
+	digging_blocks[map_coords] -= current_digging_damage
+	# ====================================================
+	print("Digging block at %s - Durability: %s (Damage: %s)" % [map_coords, digging_blocks[map_coords], current_digging_damage])
 
-	# NOWOŚĆ: Aktualizacja paska zdrowia bloku
 	if current_block_health_bar != null and is_instance_valid(current_block_health_bar):
-		# Upewnijmy się, że max_value jest ustawione, jeśli nie było (choć powinno być w start_digging)
 		if current_block_health_bar.max_value != current_digging_block_initial_hp:
 			current_block_health_bar.max_value = current_digging_block_initial_hp
 		current_block_health_bar.value = digging_blocks[map_coords]
-		if digging_blocks[map_coords] < 0.3 * current_block_health_bar.max_value:
-			current_block_health_bar.get("theme_override_styles/fill").bg_color = Color.RED
-		else:
-			current_block_health_bar.get("theme_override_styles/fill").bg_color = Color.DARK_GOLDENROD
+		
+		# === ZMIANA: Sprawdzenie typu StyleBoxu ===
+		var fill_stylebox = current_block_health_bar.get_theme_stylebox("fill")
+		if fill_stylebox is StyleBoxFlat: 
+			if digging_blocks[map_coords] < 0.3 * current_block_health_bar.max_value:
+				fill_stylebox.bg_color = Color.RED
+			else:
+				fill_stylebox.bg_color = Color.DARK_GOLDENROD 
+		# else: # Opcjonalny printerr, jeśli styl nie jest StyleBoxFlat
+		# 	printerr("HealthBar fill is not a StyleBoxFlat, cannot change bg_color directly.")
+		# =========================================
 
-
-	# Sprawdź, czy wytrzymałość spadła do zera lub poniżej
 	if digging_blocks[map_coords] <= 0:
 		print("Block destroyed at", map_coords) # Debug
 
@@ -525,7 +530,14 @@ func handle_ladder_placement() -> void:
 		emit_signal("inventory_updated", inventory)
 	LadderPlaceSound.play()
 
+func apply_pickaxe_damage_upgrade(upgrade_value: float, is_multiplier: bool = true) -> void:
+	if is_multiplier:
+		current_digging_damage = base_digging_damage * upgrade_value
+	else:
+		current_digging_damage = upgrade_value 
 
+	print("Player: Pickaxe damage upgraded. New digging damage: ", current_digging_damage)
+	
 func apply_fall_damage(damage_percent: float) -> void:
 	if current_hp <= 0:
 		return

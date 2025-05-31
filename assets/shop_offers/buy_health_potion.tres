@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ShopOffer" load_steps=4 format=3 uid="uid://ds7bl7ys0u4as"]
+
+[ext_resource type="Texture2D" uid="uid://chv5cfq33cho" path="res://assets/sprites/icons/red-potions.png" id="1_uwpbh"]
+[ext_resource type="Script" uid="uid://chflva3ovnshi" path="res://scripts/ShopOffer.gd" id="2_5dvet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_evy74"]
+atlas = ExtResource("1_uwpbh")
+region = Rect2(0, 0.079, 16, 16)
+
+[resource]
+resource_name = "shop_offer_unlock_level_2_digging"
+script = ExtResource("2_5dvet")
+offer_name = "Buy Health Potion"
+description = "A bubbling potion that restores 50 health points. Costs 100 coins."
+cost_amount = 100
+reward_type = 3
+reward_string_data = "HEALTH_POTION_PURCHASE"
+reward_float_data = 0.0
+unique_id = "SHOP_OFFER_BUY_HEALTH_POTION"
+display_icon = SubResource("AtlasTexture_evy74")
+level_number = 0

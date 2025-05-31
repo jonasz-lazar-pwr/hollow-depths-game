@@ -571,3 +571,11 @@ func _on_ladder_exited(body):
 		set_collision_mask_value(1, true)
 		if LadderClimbSound.playing:
 			LadderClimbSound.stop()
+
+func add_health(amount: float):
+	if current_hp <= 0: # Nie lecz trupa
+		return
+	current_hp += amount
+	current_hp = min(current_hp, max_hp) # Nie przekraczaj max HP
+	health_updated.emit(current_hp, max_hp)
+	print("Player healed for ", amount, " HP. Current HP: ", current_hp)

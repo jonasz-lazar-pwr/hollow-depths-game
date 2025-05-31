@@ -30,8 +30,9 @@ var crystal_item_type_ref: InventoryItemType = preload("res://assets/inventory/c
 	preload("res://assets/shop_offers/upgrade_pickaxe_damage_2.tres"),
 	preload("res://assets/shop_offers/upgrade_pickaxe_damage_3.tres"),
 ]
-var buy_ladder_offer_ref: ShopOffer = preload("res://assets/shop_offers/buy_ladder.tres") # <<< NOWA REFERENCJA
-var ladder_item_type_for_purchase: InventoryItemType = preload("res://assets/inventory/ladder.tres") # <<< Potrzebne do dodania do ekwipunku
+var buy_ladder_offer_ref: ShopOffer = preload("res://assets/shop_offers/buy_ladder.tres")
+var ladder_item_type_for_purchase: InventoryItemType = preload("res://assets/inventory/ladder.tres")
+var buy_health_potion_offer_ref: ShopOffer = preload("res://assets/shop_offers/buy_health_potion.tres") # <<< NOWA REFERENCJA
 
 var offer_item_scene_ref: PackedScene = preload("res://assets/scenes/ShopOfferItemUI.tscn")
 
@@ -90,7 +91,7 @@ func _update_ui_for_mode():
 		title_label.text = "Miner's Exchange - Sell Items"
 		switch_mode_button.text = "Switch to Buy Mode"
 	else:
-		title_label.text = "Miner's Shop - Buy Upgrades"
+		title_label.text = "Miner's Shop - Buy Upgrades & Items" # Zmiana tytułu
 		switch_mode_button.text = "Switch to Sell Mode"
 
 func populate_offers() -> void:
@@ -136,24 +137,34 @@ func populate_offers() -> void:
 				_connect_tooltip_signals(offer_item_ui_sell, dynamic_sell_offer)
 
 	elif current_shop_mode == ShopMode.BUY:
+		var player_current_coins = 0
+		if game_manager.has_method("get_player_coins"):
+			player_current_coins = game_manager.get_player_coins()
+
 		# 1. Oferta zakupu drabinki
 		if is_instance_valid(buy_ladder_offer_ref):
 			var offer_item_ui_ladder = offer_item_scene_ref.instantiate()
 			offers_container.add_child(offer_item_ui_ladder)
 			_ui_to_offer_map[offer_item_ui_ladder] = buy_ladder_offer_ref
-
-			var player_coins_for_ladder = 0
-			if game_manager.has_method("get_player_coins"): player_coins_for_ladder = game_manager.get_player_coins()
-			var can_afford_ladder = player_coins_for_ladder >= buy_ladder_offer_ref.cost_amount
-			
-			# Dla drabinki, `already_purchased_this_offer` jest zawsze false, bo można kupować wielokrotnie
+			var can_afford_ladder = player_current_coins >= buy_ladder_offer_ref.cost_amount
 			offer_item_ui_ladder.setup_offer(buy_ladder_offer_ref, player_inventory, false, can_afford_ladder, int(current_shop_mode))
-			
 			if offer_item_ui_ladder.has_signal("purchase_requested") and not offer_item_ui_ladder.purchase_requested.is_connected(_on_any_offer_item_pressed):
 				offer_item_ui_ladder.purchase_requested.connect(_on_any_offer_item_pressed)
 			_connect_tooltip_signals(offer_item_ui_ladder, buy_ladder_offer_ref)
 
-		# 2. Oferty ulepszeń kilofa
+		# 2. Oferta zakupu mikstury zdrowia
+		if is_instance_valid(buy_health_potion_offer_ref):
+			var offer_item_ui_potion = offer_item_scene_ref.instantiate()
+			offers_container.add_child(offer_item_ui_potion)
+			_ui_to_offer_map[offer_item_ui_potion] = buy_health_potion_offer_ref
+			var can_afford_potion = player_current_coins >= buy_health_potion_offer_ref.cost_amount
+			# Dla mikstury, `already_purchased_this_offer` jest zawsze false, bo można kupować wielokrotnie
+			offer_item_ui_potion.setup_offer(buy_health_potion_offer_ref, player_inventory, false, can_afford_potion, int(current_shop_mode))
+			if offer_item_ui_potion.has_signal("purchase_requested") and not offer_item_ui_potion.purchase_requested.is_connected(_on_any_offer_item_pressed):
+				offer_item_ui_potion.purchase_requested.connect(_on_any_offer_item_pressed)
+			_connect_tooltip_signals(offer_item_ui_potion, buy_health_potion_offer_ref)
+
+		# 3. Oferty ulepszeń kilofa
 		var current_pickaxe_lvl = 0
 		if game_manager.has_method("get_upgrade_level"):
 			current_pickaxe_lvl = game_manager.get_upgrade_level("PICKAXE_LEVEL_PROGRESS")
@@ -165,21 +176,19 @@ func populate_offers() -> void:
 			var offer_item_ui_pickaxe = offer_item_scene_ref.instantiate()
 			offers_container.add_child(offer_item_ui_pickaxe)
 			_ui_to_offer_map[offer_item_ui_pickaxe] = next_pickaxe_offer_to_display
-			var player_coins_for_pickaxe = 0
-			if game_manager.has_method("get_player_coins"): player_coins_for_pickaxe = game_manager.get_player_coins()
-			var can_afford_pickaxe_upgrade = player_coins_for_pickaxe >= next_pickaxe_offer_to_display.cost_amount
+			var can_afford_pickaxe_upgrade = player_current_coins >= next_pickaxe_offer_to_display.cost_amount
 			offer_item_ui_pickaxe.setup_offer(next_pickaxe_offer_to_display, player_inventory, false, can_afford_pickaxe_upgrade, int(current_shop_mode))
 			if offer_item_ui_pickaxe.has_signal("purchase_requested") and not offer_item_ui_pickaxe.purchase_requested.is_connected(_on_any_offer_item_pressed):
 				offer_item_ui_pickaxe.purchase_requested.connect(_on_any_offer_item_pressed)
 			_connect_tooltip_signals(offer_item_ui_pickaxe, next_pickaxe_offer_to_display)
-		else:
-			# Tylko jeśli NIE MA oferty kilofa, pokaż ten label. Jeśli jest oferta drabinki, to już coś jest.
-			if not is_instance_valid(buy_ladder_offer_ref) or offers_container.get_child_count() == 0 : # Sprawdź, czy kontener jest pusty
-				var max_label = Label.new()
-				max_label.text = "No more upgrades available." # Ogólniejszy tekst
-				max_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				max_label.custom_minimum_size.y = 50
-				offers_container.add_child(max_label)
+		
+		# Komunikat, jeśli nie ma ŻADNYCH ofert w trybie BUY
+		if offers_container.get_child_count() == 0 :
+			var no_offers_label = Label.new()
+			no_offers_label.text = "No items or upgrades available for purchase."
+			no_offers_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			no_offers_label.custom_minimum_size.y = 50
+			offers_container.add_child(no_offers_label)
 
 	if is_instance_valid(offers_scroll): offers_scroll.scroll_vertical = 0
 
@@ -219,48 +228,64 @@ func _on_any_offer_item_pressed(offer_to_purchase: ShopOffer) -> void:
 			else: print("ShopUI (SELL): No %s to sell." % item_type_to_sell.name)
 
 	elif current_shop_mode == ShopMode.BUY:
-		# Sprawdzenie, czy gracz ma wystarczająco monet
 		var player_current_coins = 0
 		if game_manager.has_method("get_player_coins"):
 			player_current_coins = game_manager.get_player_coins()
 		
 		if player_current_coins < offer_to_purchase.cost_amount:
 			print("ShopUI: Not enough coins for '%s'." % offer_to_purchase.offer_name)
-			return # Zakończ, jeśli nie stać gracza
+			return
 
-		# Obsługa zakupu ulepszenia kilofa
-		if offer_to_purchase.reward_string_data == "PICKAXE_LEVEL_PROGRESS":
-			if game_manager.has_method("grant_leveled_upgrade") and game_manager.has_method("remove_player_coins"):
-				if game_manager.remove_player_coins(offer_to_purchase.cost_amount):
+		var purchase_successful = false
+		if game_manager.has_method("remove_player_coins"):
+			if game_manager.remove_player_coins(offer_to_purchase.cost_amount):
+				purchase_successful = true
+			else:
+				printerr("ShopUI (BUY) ERROR: Failed to remove coins for offer '%s'." % offer_to_purchase.offer_name)
+		else:
+			printerr("ShopUI (BUY) ERROR: game_manager missing remove_player_coins method.")
+			return # Nie można kontynuować bez odejmowania monet
+
+		if purchase_successful:
+			if offer_to_purchase.reward_string_data == "PICKAXE_LEVEL_PROGRESS":
+				if game_manager.has_method("grant_leveled_upgrade"):
 					game_manager.grant_leveled_upgrade(
 						offer_to_purchase.reward_string_data,
 						offer_to_purchase.level_number,
 						offer_to_purchase.reward_float_data
 					)
-					populate_offers() # Odśwież, aby pokazać następny poziom ulepszenia lub info o maks. poziomie
-				else: printerr("ShopUI (BUY PICKAXE) ERROR: Failed to remove coins.")
-			else: printerr("ShopUI (BUY PICKAXE): game_manager missing required methods for pickaxe upgrade.")
-		
-		# Obsługa zakupu drabinki
-		elif offer_to_purchase.reward_string_data == "LADDER_ITEM_PURCHASE":
-			if game_manager.has_method("remove_player_coins") and is_instance_valid(ladder_item_type_for_purchase):
-				if game_manager.remove_player_coins(offer_to_purchase.cost_amount):
+				else: printerr("ShopUI (BUY PICKAXE): game_manager missing grant_leveled_upgrade method.")
+			
+			elif offer_to_purchase.reward_string_data == "LADDER_ITEM_PURCHASE":
+				if is_instance_valid(ladder_item_type_for_purchase):
 					var new_ladder_item = InventoryItem.new()
 					new_ladder_item.item_type = ladder_item_type_for_purchase
-					if player_inventory.put(new_ladder_item):
-						print("ShopUI: Purchased 1 Ladder.")
-						# Ekwipunek sam wyśle sygnał, więc UI powinno się zaktualizować
-						# Można tu dodać dźwięk zakupu
-						populate_offers() # Odśwież, aby zaktualizować stan "can_afford" dla oferty drabinki
-					else:
-						printerr("ShopUI (BUY LADDER) ERROR: Could not add ladder to inventory (maybe full?). Refunding coins.")
-						game_manager.add_player_coins(offer_to_purchase.cost_amount) # Zwrot monet
-				else: printerr("ShopUI (BUY LADDER) ERROR: Failed to remove coins for ladder.")
-			else: printerr("ShopUI (BUY LADDER): game_manager missing remove_player_coins or ladder_item_type_for_purchase is invalid.")
-		
-		else:
-			printerr("ShopUI (BUY): Unknown offer reward_string_data: '%s'" % offer_to_purchase.reward_string_data)
+					if not player_inventory.put(new_ladder_item):
+						printerr("ShopUI (BUY LADDER) ERROR: Could not add ladder to inventory. Refunding coins.")
+						game_manager.add_player_coins(offer_to_purchase.cost_amount)
+				else: printerr("ShopUI (BUY LADDER): ladder_item_type_for_purchase is invalid.")
 
+			elif offer_to_purchase.reward_string_data == "HEALTH_POTION_PURCHASE":
+				# Potrzebujemy dostępu do obiektu gracza, aby wywołać add_health
+				# Zakładamy, że game_manager to np. scena 'Game', która ma referencję do gracza
+				var player_node = null
+				if game_manager.has_node("WorldContainer/Player"): # Dostosuj ścieżkę, jeśli jest inna
+					player_node = game_manager.get_node("WorldContainer/Player")
+				
+				if is_instance_valid(player_node) and player_node.has_method("add_health"):
+					player_node.add_health(50.0) # Przywróć 50 HP
+					print("ShopUI: Used Health Potion, restored 50 HP.")
+				else:
+					printerr("ShopUI (BUY POTION) ERROR: Player node not found or missing add_health method. Refunding coins.")
+					game_manager.add_player_coins(offer_to_purchase.cost_amount)
+			
+			else:
+				printerr("ShopUI (BUY): Unknown offer reward_string_data: '%s'" % offer_to_purchase.reward_string_data)
+				# Jeśli był to nieznany typ oferty, a monety zostały odjęte, powinniśmy je zwrócić
+				game_manager.add_player_coins(offer_to_purchase.cost_amount)
+				print("ShopUI (BUY): Refunded coins due to unknown offer type after payment.")
+
+			populate_offers() # Odśwież UI sklepu po każdej udanej lub częściowo udanej transakcji
 
 func _connect_tooltip_signals(item_ui_instance: Control, offer_data: ShopOffer):
 	if not is_instance_valid(item_ui_instance) or not is_instance_valid(offer_data): return

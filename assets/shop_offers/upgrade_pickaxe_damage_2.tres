@@ -7,7 +7,7 @@
 resource_name = "shop_offer_unlock_level_2_digging"
 script = ExtResource("1_0ucdo")
 offer_name = "Upgrade Pickaxe (Lvl 3)"
-description = "Increases pickaxe digging power, allowing for faster mining
+description = "Increases pickaxe digging power, allowing for faster mining through rocks
 Cost: 33 Coins"
 cost_amount = 33
 reward_type = 2

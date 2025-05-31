@@ -69,10 +69,11 @@ size_flags_vertical = 3
 mouse_filter = 2
 horizontal_scroll_mode = 0
 
-[node name="OffersContainer" type="VBoxContainer" parent="Background/MarginContainer/VBoxContainer/OffersScroll"]
+[node name="OffersContainer" type="GridContainer" parent="Background/MarginContainer/VBoxContainer/OffersScroll"]
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
+columns = 5
 
 [node name="CloseButton" type="Button" parent="Background/MarginContainer"]
 process_mode = 2

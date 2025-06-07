@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="InventoryItemType" load_steps=4 format=3 uid="uid://bw7cg3847ysd2"]
+[gd_resource type="Resource" script_class="InventoryItemType" load_steps=4 format=3 uid="uid://dstqfk7foojlw"]
 
 [ext_resource type="Script" uid="uid://c2kq0x5odumur" path="res://addons/Inventory/InventoryItemType.gd" id="1_hufkg"]
 [ext_resource type="Texture2D" uid="uid://cbyde4wxvjcuu" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02_stones.png" id="2_euvsr"]

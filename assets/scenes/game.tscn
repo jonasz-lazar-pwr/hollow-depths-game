@@ -1,10 +1,11 @@
-[gd_scene load_steps=20 format=4 uid="uid://bjs34cbfgjo1f"]
+[gd_scene load_steps=23 format=4 uid="uid://bjs34cbfgjo1f"]
 
 [ext_resource type="PackedScene" uid="uid://d00swspj35t6w" path="res://assets/scenes/player.tscn" id="1_uwrxv"]
 [ext_resource type="Script" uid="uid://dm3iihye8a3wy" path="res://scripts/game.gd" id="1_vtaks"]
 [ext_resource type="Texture2D" uid="uid://bcm1qkp4dydjd" path="res://assets/sprites/Miner16Bit_AllFiles_v1/Miner16Bit_WorldTiles_02.png" id="1_yqjtg"]
 [ext_resource type="PackedScene" uid="uid://cfjwdbp0vsk1a" path="res://assets/scenes/crt_shader.tscn" id="2_gee14"]
 [ext_resource type="Script" uid="uid://cc8x1tg73jmw1" path="res://scripts/game_over_ui.gd" id="5_dinhu"]
+[ext_resource type="FontFile" uid="uid://vuhp4ap3r2kd" path="res://assets/fonts/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf" id="5_i358u"]
 [ext_resource type="Shader" uid="uid://clgqqxru7jg8" path="res://shaders/grayscale_shader.gdshader" id="5_kvpfn"]
 [ext_resource type="PackedScene" uid="uid://dp2tfsw1nyc3v" path="res://assets/scenes/InventoryGridUI.tscn" id="5_s2rys"]
 [ext_resource type="Resource" uid="uid://tc2oqyms7jt2" path="res://assets/scenes/player_inventory.tres" id="6_fc420"]
@@ -18,6 +19,12 @@ distance = -356.0
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_lnu2h"]
 distance = -524.0
+
+[sub_resource type="SystemFont" id="SystemFont_pkhv0"]
+fallbacks = Array[Font]([ExtResource("5_i358u")])
+
+[sub_resource type="FontVariation" id="FontVariation_i358u"]
+fallbacks = Array[Font]([ExtResource("5_i358u")])
 
 [sub_resource type="LabelSettings" id="LabelSettings_fc420"]
 font_size = 12
@@ -767,7 +774,6 @@ volume_db = -30.0
 autoplay = true
 
 [node name="CRT_Shader" parent="." instance=ExtResource("2_gee14")]
-visible = false
 z_index = 1000
 offset_left = -551.0
 offset_top = -325.0
@@ -788,17 +794,22 @@ text = "Drabiny: 5"
 
 [node name="HealthLabel" type="Label" parent="UI"]
 show_behind_parent = true
-z_index = -1
-offset_left = 24.0
-offset_top = 19.0
-offset_right = 295.0
-offset_bottom = 66.0
+offset_left = 20.0
+offset_top = 15.0
+offset_right = 206.0
+offset_bottom = 62.0
+theme_override_fonts/font = SubResource("SystemFont_pkhv0")
 theme_override_font_sizes/font_size = 34
 text = "❤️ 100/100"
 
 [node name="CoinsLabel" type="Label" parent="UI"]
-offset_right = 40.0
-offset_bottom = 23.0
+offset_left = 20.0
+offset_top = 70.0
+offset_right = 104.0
+offset_bottom = 117.0
+theme_override_fonts/font = SubResource("FontVariation_i358u")
+theme_override_font_sizes/font_size = 34
+text = "🪙 0"
 
 [node name="InventoryButton" type="Button" parent="UI"]
 anchors_preset = 1

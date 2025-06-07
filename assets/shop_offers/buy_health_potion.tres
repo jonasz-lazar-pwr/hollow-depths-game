@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ShopOffer" load_steps=4 format=3 uid="uid://ds7bl7ys0u4as"]
+[gd_resource type="Resource" script_class="ShopOffer" load_steps=4 format=3 uid="uid://dtks8ngi8s0p"]
 
 [ext_resource type="Texture2D" uid="uid://chv5cfq33cho" path="res://assets/sprites/icons/red-potions.png" id="1_uwpbh"]
 [ext_resource type="Script" uid="uid://chflva3ovnshi" path="res://scripts/ShopOffer.gd" id="2_5dvet"]

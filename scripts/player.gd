@@ -20,8 +20,8 @@ signal coins_updated(new_coin_amount: int) # Sygnał do aktualizacji UI monet
 var is_currently_falling: bool = false # Flaga śledząca stan spadania
 var fall_start_position_y: float = 0.0 # Pozycja Y, z której rozpoczął się upadek
 # --- ZMIANY DLA ULEPSZENIA KILOF ---
-var base_digging_damage: float = 250000000.0       # Bazowa siła kilofa
-var current_digging_damage: float = 250000000.0    # Aktualna siła kilofa, inicjalizowana bazową
+var base_digging_damage: float = 25.0       # Bazowa siła kilofa
+var current_digging_damage: float = 25.0    # Aktualna siła kilofa, inicjalizowana bazową
 # ------------------------------------
 # Używamy systemu kopania z wersji kolegi
 var digging_blocks = {} # Słownik śledzący stan kopanych bloków: {Vector2i(map_coords): current_durability}

@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=4 uid="uid://bjs34cbfgjo1f"]
+[gd_scene load_steps=24 format=4 uid="uid://bjs34cbfgjo1f"]
 
 [ext_resource type="PackedScene" uid="uid://d00swspj35t6w" path="res://assets/scenes/player.tscn" id="1_uwrxv"]
 [ext_resource type="Script" uid="uid://dm3iihye8a3wy" path="res://scripts/game.gd" id="1_vtaks"]
@@ -749,6 +749,9 @@ metadata/_better_terrain = {
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fc420"]
 size = Vector2(32, 32)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_i358u"]
+size = Vector2(1247, 58.5)
+
 [node name="Game" type="Node2D"]
 script = ExtResource("1_vtaks")
 
@@ -774,13 +777,9 @@ volume_db = -30.0
 autoplay = true
 
 [node name="CRT_Shader" parent="." instance=ExtResource("2_gee14")]
-z_index = 1000
-offset_left = -551.0
-offset_top = -325.0
-offset_right = 977.0
-offset_bottom = 453.0
 
 [node name="UI" type="CanvasLayer" parent="."]
+layer = 0
 script = ExtResource("9_0tnpc")
 
 [node name="LadderCountLabel" type="Label" parent="UI"]
@@ -812,6 +811,7 @@ theme_override_font_sizes/font_size = 34
 text = "🪙 0"
 
 [node name="InventoryButton" type="Button" parent="UI"]
+visible = false
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -1030,6 +1030,14 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 40
 text = "Quit to Menu"
 
+[node name="EndGameTrigger" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EndGameTrigger"]
+light_mask = 1023
+visibility_layer = 1023
+position = Vector2(-1, 1530)
+shape = SubResource("RectangleShape2D_i358u")
+
 [connection signal="pressed" from="UI/InventoryButton" to="." method="_on_InventoryButton_pressed"]
 [connection signal="pressed" from="GameOverLayer/ContinueButton" to="GameOverLayer" method="_on_restart_button_pressed"]
 [connection signal="pressed" from="GameOverLayer/QuitButton" to="GameOverLayer" method="_on_quit_button_pressed"]
@@ -1039,5 +1047,6 @@ text = "Quit to Menu"
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/SaveGameButton" to="PauseMenuLayer/PauseMenu" method="_on_save_game_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/LoadGameButton" to="PauseMenuLayer/PauseMenu" method="_on_load_game_button_pressed"]
 [connection signal="pressed" from="PauseMenuLayer/PauseMenu/ButtonContainer/QuitToMenuButton" to="PauseMenuLayer/PauseMenu" method="_on_quit_to_menu_button_pressed"]
+[connection signal="body_entered" from="EndGameTrigger" to="." method="_on_end_game_trigger_body_entered"]
 
 [editable path="UI/InventoryGridUI"]

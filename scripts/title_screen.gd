@@ -14,6 +14,11 @@ const SAVE_PATH = "res://savegame.res" # Make sure this matches game.gd
 func _ready():
     # Disable the "Continue" button if no save file exists
     continue_button.disabled = not FileAccess.file_exists(SAVE_PATH)
+    
+    #if not continue_button.disabled:
+        #continue_button.grab_focus()
+    #else:
+        #new_game_button.grab_focus()
 
 
 func _on_new_game_button_pressed():

@@ -671,6 +671,7 @@ func _unhandled_input(event: InputEvent): # Dodanie typu dla 'event' dla jasnoś
             get_tree().paused = true
             if pause_menu:
                 pause_menu.show()
+                #pause_menu.get_node("ButtonContainer/ResumeButton").grab_focus()
         return
 
     # Przełącz ekwipunek klawiszem I
@@ -935,3 +936,16 @@ func handle_shop_shortcut(event: InputEvent):
         return
 
     # Możesz dodać obsługę innych akcji przekazanych przez ShopUI, jeśli zajdzie potrzeba
+
+
+func _on_end_game_trigger_body_entered(body: Node) -> void:
+    # Check if the object that entered is the player
+    if body.is_in_group("player"):
+        print("Player has reached the bottom! Starting final cutscene.")
+        
+        # We need to defer the scene change to avoid a physics error.
+        # First, ensure the game is not paused for the transition.
+        get_tree().paused = false
+
+        # Instead of calling it directly, defer the call.
+        get_tree().call_deferred("change_scene_to_file", "res://assets/scenes/end_cutscene.tscn")

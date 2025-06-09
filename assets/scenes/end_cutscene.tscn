@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://ctoiv4a5675t2"]
+
+[ext_resource type="VideoStream" uid="uid://bd6vqd4gqanjv" path="res://assets/cutscenes/Jun_09__2315_24s_202506092324_jw0ms.ogv" id="1_b4sdp"]
+[ext_resource type="Script" uid="uid://lj0d4ms5me5m" path="res://assets/scenes/end_cutscene.gd" id="2_1gtqf"]
+
+[node name="VideoStreamPlayer" type="VideoStreamPlayer"]
+offset_left = -3.0
+offset_top = -35.0
+offset_right = 1277.0
+offset_bottom = 685.0
+stream = ExtResource("1_b4sdp")
+autoplay = true
+expand = true
+script = ExtResource("2_1gtqf")

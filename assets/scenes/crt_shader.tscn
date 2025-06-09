@@ -19,18 +19,12 @@ shader_parameter/roll_speed = 1.0
 shader_parameter/scan_line_strength = -8.0
 shader_parameter/pixel_strength = -2.0
 
-[node name="CRT_Shader" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CRT_Shader" type="CanvasLayer"]
 
 [node name="ColorRect" type="ColorRect" parent="."]
 material = SubResource("ShaderMaterial_ne4ig")
-layout_mode = 0
 offset_left = -7664.0
 offset_top = -8037.0
 offset_right = 7777.0
 offset_bottom = 45440.0
+mouse_filter = 2

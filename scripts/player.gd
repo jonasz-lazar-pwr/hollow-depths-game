@@ -20,8 +20,8 @@ signal coins_updated(new_coin_amount: int) # Sygnał do aktualizacji UI monet
 var is_currently_falling: bool = false # Flaga śledząca stan spadania
 var fall_start_position_y: float = 0.0 # Pozycja Y, z której rozpoczął się upadek
 # --- ZMIANY DLA ULEPSZENIA KILOF ---
-var base_digging_damage: float = 25.0       # Bazowa siła kilofa
-var current_digging_damage: float = 25.0    # Aktualna siła kilofa, inicjalizowana bazową
+var base_digging_damage: float = 250000000.0       # Bazowa siła kilofa
+var current_digging_damage: float = 250000000.0    # Aktualna siła kilofa, inicjalizowana bazową
 # ------------------------------------
 # Używamy systemu kopania z wersji kolegi
 var digging_blocks = {} # Słownik śledzący stan kopanych bloków: {Vector2i(map_coords): current_durability}
@@ -95,15 +95,19 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+    if get_tree().paused:
+        return
     if event.is_action_pressed("dig"):
         handle_digging()
     elif event.is_action_released("dig"):
         stop_digging()
-    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+    if event.is_action_pressed("place_ladder"):
         handle_ladder_placement()
 
 
 func _physics_process(delta: float) -> void:
+    if get_tree().paused:
+        return
     # --- Grawitacja i śledzenie spadania ---
     if not is_on_floor() and ladder_stack == 0:
         velocity += get_gravity() * delta / 6

@@ -1,43 +1,50 @@
 # Hollow Depths
 ![Engine: Godot](https://img.shields.io/badge/engine-godot4-blue?logo=godot-engine)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Status: Beta](https://img.shields.io/badge/status-Beta-yellow)
-![Platform: PC](https://img.shields.io/badge/platform-PC-lightgrey)
+![Status: Gold Master](https://img.shields.io/badge/status-Gold--Master-brightgreen)
+![Platform: PC / Web](https://img.shields.io/badge/platform-PC_|_Web-blue)
 ![Style: Pixel Art](https://img.shields.io/badge/style-pixel--art-critical)
 ![Genre: Platformer / Exploration](https://img.shields.io/badge/genre-Platformer_|_Exploration-ff69b4)
 
 ## 🎮 About the Game
-*Hollow Depths* is a 2D pixel-art platformer with deep exploration and resource management elements. You play as a miner digging deep underground in search of precious materials like ammolite and stone. Plan your descent and return to the surface using limited resources such as ladders, and upgrade your gear by trading your findings in the surface shop. The game combines satisfying digging mechanics with strategic resource management, exploration, and character/tool progression through a shop system.
+*Hollow Depths* is a 2D pixel-art platformer focused on underground exploration, resource management, and minimalistic progression. You play as a miner digging deeper into the earth across four unique biomes: soil, jungle, ice, and lava. Use ladders strategically to navigate your descent and return, sell rare gems for coins, and upgrade your tools to tackle harder terrain. 
 
-## 🎬 Gameplay Trailer (Beta Version)
+The game features a fully functional shop and economy, health and fall damage mechanics, persistent save/load, and a symbolic ending cutscene. Built for a relaxing but methodical experience – without combat, just pure exploration and mining.
+
+## 🎬 Gameplay Trailer
 [![Watch the Beta gameplay](https://img.youtube.com/vi/GdrwuZvxL4g/maxresdefault.jpg)](https://youtu.be/AftyFicKM6k)
 
-## 🧱 Key Features
-- **Mining System:** Dig through various block types, each with different durability. A visual indicator highlights the targeted block.
-- **Advanced Inventory System:** Manage collected resources (e.g., ammolite, stone) and tools like ladders in a dedicated UI, accessible with a hotkey.
-- **Strategic Building:** Place and retrieve ladders from your inventory to navigate treacherous vertical shafts.
-- **Shop & Upgrade Mechanics:** Interact with a shop to trade gathered resources for essential items and crucial upgrades (e.g., improved digging capabilities).
-- **Save/Load System:** Persist your progress and resume your underground adventures at any time.
-- **Health and Fall Damage:** Manage your miner's health and be cautious of long drops.
-- **Comprehensive UI:** Includes a HUD with health and a quick-access inventory bar, plus dedicated screens for full inventory management, shop interaction, main menu, and pause menu.
-- **Exploration Focus:** Delve into underground cave systems, discovering resources and planning your routes. (Future: Procedural generation and diverse biomes).
-- **Retro-Style Pixel Graphics (16x16)** and an ambient lo-fi soundtrack to set the mood.
-- Fully playable and tested single-player experience with a complete core gameplay loop.
+## 🔑 Key Features
+- **Multi-biome Progression:** Explore four distinct layers – soil, jungle, ice, lava – each with unique materials and increasing difficulty.
+- **Mining & Durability System:** Blocks require time to dig, based on material type and pickaxe level. A visual progress bar indicates mining progress.
+- **Economy & Coins:** Sell gems (Ammolite, Jasper, Malachite, Crystal) in the shop to earn coins.
+- **Shop & Upgrades:** Buy health potions, ladders, and pickaxe upgrades to progress further.
+- **Full Inventory System:** Store, select, and place items with a dedicated UI and HUD.
+- **Health and Fall Damage:** Careful descent is critical. Longer falls result in significant damage.
+- **Save/Load Functionality:** Preserve your progress and resume where you left off.
+- **Final Cutscene:** Reaching the deepest level triggers a short, atmospheric ending.
+- **Pixel Art Aesthetics:** Retro 16x16 visual style and a cohesive underground theme.
+- **Lo-fi Ambient Soundtrack:** Relaxing background music and immersive sound effects.
+- **Web & PC Build:** Play directly in browser or download for desktop.
+
+## 🌐 Play Online
+Play the full game on itch.io:  
+👉 [https://konrad-skowron.itch.io/hollow-depths](https://konrad-skowron.itch.io/hollow-depths)
 
 ## 💻 Built With
 - **Engine**: [Godot 4](https://godotengine.org/)
 - **Language**: GDScript
-- **Graphics**: Pixel-art assets primarily by [DK Productions](https://dkproductions.itch.io/16bit-miner-animated-character), with additional community assets.
-- **Audio**: Lo-fi ambient soundtrack (royalty-free) and custom sound effects.
-- **Key Addons/Modules**: Custom Inventory System, BetterTerrain (for advanced tilemap features).
+- **Graphics**: Pixel-art assets from [DK Productions](https://dkproductions.itch.io/16bit-miner-animated-character), plus custom UI & sprites.
+- **Audio**: Royalty-free background music + custom-edited SFX.
+- **Key Modules**: Custom Inventory System, Ladder System, Shop Logic, Save/Load Handler.
 
 ## 👥 Team
 
 | Name             | Role                                                                 |
 |------------------|----------------------------------------------------------------------|
-| **Konrad Skowron**   | Core gameplay mechanics, digging system, inventory & save/load system |
-| **Jonasz Lazar**     | Level logic, ladder & climbing system, gameplay loop integration, UI   |
-| **Mateusz Staszków** | Art direction, animation, UI design, NPC/shop system implementation     |
+| **Konrad Skowron**   | Core gameplay mechanics, digging logic, save/load, coin/shop economy |
+| **Jonasz Lazar**     | Biome progression, ladder logic, gameplay loop integration, UX     |
+| **Mateusz Staszków** | Pixel-art assets, character animation, UI design, NPC/shop system  |
 
 ## 🚀 Getting Started
 
